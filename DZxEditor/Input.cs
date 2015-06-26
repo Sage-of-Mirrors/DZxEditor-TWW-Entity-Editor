@@ -24,6 +24,14 @@ namespace DZxEditor
         private static readonly bool[] _prevMouseBtnsDown = new bool[3];
         private static Vector3 _prevMousePos;
 
+        public static void ClearKeys()
+        {
+            for (int i = 0; i < 256; i++)
+            {
+                _keysDown[i] = false;
+            }
+        }
+
         public static bool GetKey(Keys key)
         {
             return _keysDown[(int)key];

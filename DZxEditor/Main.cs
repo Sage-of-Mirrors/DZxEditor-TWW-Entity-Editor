@@ -54,9 +54,11 @@ namespace DZxEditor
 
         List<EntityTemplate> ChunkTemplates;
 
+        List<ControlObject> Controls;
+
         Chunk SelectedChunk;
 
-        Stopwatch Stop;
+        ControlObject CurrentControl;
 
         Timer time;
 
@@ -69,6 +71,8 @@ namespace DZxEditor
         Matrix4 ProjMatrix;
 
         TreeNode CurSelectedNode;
+
+        CollisionMesh Collision;
 
         public bool IsListLoaded = false;
 
@@ -85,6 +89,8 @@ namespace DZxEditor
         public Worker(MainUI mainForm)
         {
             Chunks = new List<Chunk>();
+
+            Controls = new List<ControlObject>();
 
             MainForm = mainForm;
         }
@@ -104,6 +110,22 @@ namespace DZxEditor
             }
 
             return itemTemplates;
+        }
+
+        private List<ControlObject> LoadControls()
+        {
+            List<ControlObject> controlList = new List<ControlObject>();
+
+            foreach (EntityTemplate template in ChunkTemplates)
+            {
+                ControlObject obj = new ControlObject();
+
+                obj.Load(template);
+
+                controlList.Add(obj);
+            }
+
+            return controlList;
         }
 
         protected void LoadShader(string fileName, ShaderType type, int program, out int address)
@@ -196,16 +218,12 @@ namespace DZxEditor
 
         private void CreateTimer()
         {
-            Stop = new Stopwatch();
-
             time = new Timer();
 
             time.Interval = 16;
 
             time.Tick += (o, args) =>
             {
-                Stop.Start();
-
                 Input.Internal_SetMousePos(new Vector2(Cursor.Position.X, Cursor.Position.Y));
 
                 Input.Internal_UpdateInputState();
@@ -214,9 +232,10 @@ namespace DZxEditor
 
                 Draw();
 
-                Stop.Stop();
-
-                //deltaTime = (int)Stop.ElapsedMilliseconds;
+                if ((CurrentControl != null) && (SelectedChunk != null))
+                {
+                    CurrentControl.SaveFields(SelectedChunk);
+                }
 
             };
 
@@ -243,15 +262,35 @@ namespace DZxEditor
 
                         IsListLoaded = true;
                     }
+
+                    if (arc.Nodes[i].Entries[j].Name.Contains(".dzb"))
+                    {
+                        EndianBinaryReader dzbReader = new EndianBinaryReader(arc.Nodes[i].Entries[j].Data, Endian.Big);
+
+                        Collision = new CollisionMesh();
+
+                        Collision.Load(dzbReader);
+                    }
                 }
             }
         }
 
-        public void Read(EndianBinaryReader reader)
+        public void SaveToDzx(string fileName)
+        {
+            FileStream stream = new FileStream(fileName, FileMode.Create);
+
+            EndianBinaryWriter writer = new EndianBinaryWriter(stream, Endian.Big);
+
+            Write(writer);
+        }
+
+        void Read(EndianBinaryReader reader)
         {
             Cam = new Camera();
 
             ChunkTemplates = LoadTemplates();
+
+            Controls = LoadControls();
 
             Chunks.Clear();
 
@@ -426,7 +465,7 @@ namespace DZxEditor
                 height = MainForm.Viewport.Height;
 
             ViewMatrix = Cam.ViewMatrix;
-            ProjMatrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(65), width / height, 100, 500000);
+            ProjMatrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(65), (float)((float)width / (float)height), 100, 500000);
 
             foreach (Chunk chun in Chunks)
             {
@@ -447,9 +486,34 @@ namespace DZxEditor
                     else
                         chun.ResetDisplayColor();
                     GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-
-                    //chun.Render(MainForm.Viewport, _uniformMVP, _uniformColor, ViewMatrix, ProjMatrix);
                 }
+            }
+
+            if (Collision != null)
+            {
+                GL.Disable(EnableCap.Texture2D);
+
+                GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
+                GL.Enable(EnableCap.Blend);
+                GL.Enable(EnableCap.CullFace);
+                GL.CullFace(CullFaceMode.Back);
+                GL.FrontFace(FrontFaceDirection.Ccw);
+
+                GL.Enable(EnableCap.PolygonOffsetFill);
+                GL.PolygonOffset(1.0f, 1.0f);
+
+                Color4 colColor = new Color4(Color4.LightYellow.R, Color4.LightYellow.G, Color4.LightYellow.B, 0.45f);
+
+                GL.Uniform4(_uniformColor, colColor);
+
+                Collision.Render(MainForm.Viewport, _uniformMVP, ViewMatrix, ProjMatrix);
+
+                GL.Disable(EnableCap.PolygonOffsetFill);
+
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                GL.Uniform4(_uniformColor, Color4.Black);
+                Collision.Render(MainForm.Viewport, _uniformMVP, ViewMatrix, ProjMatrix);
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
             }
 
             ////Build a Model View Projection Matrix. This is where you would add camera movement (modifiying the View matrix), Perspective rendering (perspective matrix) and model position/scale/rotation (Model)
@@ -639,11 +703,20 @@ namespace DZxEditor
             TreeNode elementNode = MainForm.ElementView.Nodes[parentNodeIndex].Nodes[elementNodeIndex];
 
             MainForm.ElementView.SelectedNode = elementNode;
+
+            UpdateControls();
         }
 
         public void ChangeSelectionFromTreeNode(TreeNode node)
         {
             CurSelectedNode = node;
+
+            if (CurrentControl != null)
+            {
+                //CurrentControl.Hide();
+
+                //CurrentControl.RemoveFromMainForm(MainForm);
+            }
 
             if (node.Parent != null)
             {
@@ -660,9 +733,31 @@ namespace DZxEditor
                         SelectedChunk = chunkList[node.Index];
 
                         SelectedChunk.DisplayColor = Color.Red;
+
+                        UpdateControls();
                     }
                 }
             }
+        }
+
+        private void UpdateControls()
+        {
+            if (CurrentControl != null)
+            {
+                CurrentControl.Hide();
+
+                CurrentControl.RemoveFromMainForm(MainForm);
+            }
+
+            string truncatedType = SelectedChunk.ChunkType.Remove(SelectedChunk.ChunkType.Length - 1);
+
+            CurrentControl = Controls.Find(x => x.ChunkID.Contains(truncatedType));
+
+            CurrentControl.FillGeneral(SelectedChunk);
+
+            CurrentControl.AddToMainForm(MainForm);
+
+            CurrentControl.Show();
         }
 
         #endregion
@@ -766,8 +861,6 @@ namespace DZxEditor
         int _glVbo;
 
         int _glEbo;
-
-        int _glNbo;
 
         public float RayResult;
 
@@ -1193,19 +1286,6 @@ namespace DZxEditor
 
             return isSelected;
         }
-
-        public void MakeDebugChunk(Vector3 ray)
-        {
-            GenerateCube();
-
-            DisplayColor = Color.Bisque;
-
-            ElementProperty prop = new ElementProperty();
-
-            prop.MakeProperty("Position", FieldType.Vector3, ray);
-
-            Fields.Add(prop);
-        }
     }
 
     public class EntityTemplate
@@ -1341,119 +1421,415 @@ namespace DZxEditor
         public int BitShift;
     }
 
-    public static class Vec3
+    public class ControlObject
     {
-        #region Project
-        /// <summary>
-        /// Projects a vector from object space into screen space.
-        /// </summary>
-        /// <param name="vector">The vector to project.</param>
-        /// <param name="x">The X coordinate of the viewport.</param>
-        /// <param name="y">The Y coordinate of the viewport.</param>
-        /// <param name="width">The width of the viewport.</param>
-        /// <param name="height">The height of the viewport.</param>
-        /// <param name="minZ">The minimum depth of the viewport.</param>
-        /// <param name="maxZ">The maximum depth of the viewport.</param>
-        /// <param name="worldViewProjection">The world-view-projection matrix.</param>
-        /// <returns>The vector in screen space.</returns>
-        /// <remarks>
-        /// To project to normalized device coordinates (NDC) use the following parameters:
-        /// Project(vector, -1, -1, 2, 2, -1, 1, worldViewProjection).
-        /// </remarks>
-        public static Vector3 Project(Vector3 vector, float x, float y, float width, float height, float minZ, float maxZ, Matrix4 worldViewProjection)
+        public string ChunkID;
+
+        Panel ControlBase;
+
+        public void Load(EntityTemplate template)
         {
-            Vector4 result;
+            ChunkID = template.ChunkID;
 
-            result.X = 
-                vector.X * worldViewProjection.M11 + 
-                vector.Y * worldViewProjection.M21 + 
-                vector.Z * worldViewProjection.M31 + 
-                worldViewProjection.M41;
+            ControlBase = new Panel();
 
-            result.Y =
-                vector.X * worldViewProjection.M12 +
-                vector.Y * worldViewProjection.M22 +
-                vector.Z * worldViewProjection.M32 +
-                worldViewProjection.M42;
+            ControlBase.Dock = DockStyle.Right;
 
-            result.Z =
-                vector.X * worldViewProjection.M13 +
-                vector.Y * worldViewProjection.M23 +
-                vector.Z * worldViewProjection.M33 +
-                worldViewProjection.M43;
+            ControlBase.Width = 225;
 
-            result.W =
-                vector.X * worldViewProjection.M14 +
-                vector.Y * worldViewProjection.M24 +
-                vector.Z * worldViewProjection.M34 +
-                worldViewProjection.M44;
+            int controlYPos = 13;
 
-            result /= result.W;
+            foreach (ElementProperty prop in template.Properties)
+            {
+                switch (prop.Type)
+                {
+                    case FieldType.Byte:
+                        NumericUpDown ByteNumeric = new NumericUpDown();
+                        ByteNumeric.Name = prop.Name;
+                        ByteNumeric.Minimum = 0;
+                        ByteNumeric.Maximum = 255;
+                        ByteNumeric.Location = new Point(ControlBase.Width - ByteNumeric.Width, controlYPos);
+                        ControlBase.Controls.Add(ByteNumeric);
+                        break;
+                    case FieldType.Short:
+                        NumericUpDown ShortNumeric = new NumericUpDown();
+                        ShortNumeric.Name = prop.Name;
+                        ShortNumeric.Minimum = short.MinValue;
+                        ShortNumeric.Maximum = short.MaxValue;
+                        ShortNumeric.Location = new Point(ControlBase.Width - ShortNumeric.Width, controlYPos);
+                        ControlBase.Controls.Add(ShortNumeric);
+                        break;
+                    case FieldType.Integer:
+                        NumericUpDown IntNumeric = new NumericUpDown();
+                        IntNumeric.Name = prop.Name;
+                        IntNumeric.Minimum = int.MinValue;
+                        IntNumeric.Maximum = int.MaxValue;
+                        IntNumeric.Location = new Point(ControlBase.Width - IntNumeric.Width, controlYPos);
+                        ControlBase.Controls.Add(IntNumeric);
+                        break;
+                    case FieldType.Float:
+                        NumericUpDown FloatNumeric = new NumericUpDown();
+                        FloatNumeric.Name = prop.Name;
+                        FloatNumeric.Minimum = decimal.MinValue;
+                        FloatNumeric.Maximum = decimal.MaxValue;
+                        FloatNumeric.DecimalPlaces = 3;
+                        FloatNumeric.Location = new Point(ControlBase.Width - FloatNumeric.Width, controlYPos);
+                        ControlBase.Controls.Add(FloatNumeric);
+                        break;
+                    case FieldType.Vector2:
+                        NumericUpDown Vec2NumericX = new NumericUpDown();
+                        Vec2NumericX.Name = prop.Name + ":X";
+                        Vec2NumericX.Minimum = decimal.MinValue;
+                        Vec2NumericX.Maximum = decimal.MaxValue;
+                        Vec2NumericX.DecimalPlaces = 3;
+                        ControlBase.Controls.Add(Vec2NumericX);
+                        
+                        NumericUpDown Vec2NumericY = new NumericUpDown();
+                        Vec2NumericY.Name = prop.Name + ":Y";
+                        Vec2NumericY.Minimum = decimal.MinValue;
+                        Vec2NumericY.Maximum = decimal.MaxValue;
+                        Vec2NumericY.DecimalPlaces = 3;
+                        ControlBase.Controls.Add(Vec2NumericY);
+                        break;
+                    case FieldType.Vector3:
+                        controlYPos = LoadVec3Controls(controlYPos, prop);
+                        continue;
+                    case FieldType.String:
+                        TextBox StringBox = new TextBox();
+                        StringBox.Name = prop.Name;
+                        StringBox.Width = 120;
+                        StringBox.Location = new Point(ControlBase.Width - StringBox.Width, controlYPos);
+                        ControlBase.Controls.Add(StringBox);
+                        break;
+                    case FieldType.ListByte:
+                        break;
+                }
 
-            result.X = x + (width * ((result.X + 1.0f) / 2.0f));
-            result.Y = y + (height * ((result.Y + 1.0f) / 2.0f));
-            result.Z = minZ + ((maxZ - minZ) * ((result.Z + 1.0f) / 2.0f));
+                Label propLable = new Label();
 
-            return new Vector3(result.X, result.Y, result.Z);
+                propLable.Name = prop.Name + "Label";
+                propLable.Text = prop.Name + ": ";
+
+                propLable.Location = new Point(7, controlYPos);
+
+                ControlBase.Controls.Add(propLable);
+
+                controlYPos += 26;
+            }
         }
 
-        #endregion
-
-        #region Unproject
-
-        /// <summary>
-        /// Projects a vector from screen space into object space.
-        /// </summary>
-        /// <param name="vector">The vector to project.</param>
-        /// <param name="x">The X coordinate of the viewport.</param>
-        /// <param name="y">The Y coordinate of the viewport.</param>
-        /// <param name="width">The width of the viewport.</param>
-        /// <param name="height">The height of the viewport.</param>
-        /// <param name="minZ">The minimum depth of the viewport.</param>
-        /// <param name="maxZ">The maximum depth of the viewport.</param>
-        /// <param name="worldViewProjection">The inverse of the world-view-projection matrix.</param>
-        /// <returns>The vector in object space.</returns>
-        /// <remarks>
-        /// To project from normalized device coordinates (NDC) use the following parameters:
-        /// Project(vector, -1, -1, 2, 2, -1, 1, inverseWorldViewProjection).
-        /// </remarks>
-        public static Vector3 Unproject(Vector3 vector, float x, float y, float width, float height, float minZ, float maxZ, Matrix4 inverseWorldViewProjection)
+        private int LoadVec3Controls(int yPos, ElementProperty prop)
         {
-            Vector4 result;
+            NumericUpDown Vec3NumericX = new NumericUpDown();
+            Vec3NumericX.Name = prop.Name + ":X";
+            Vec3NumericX.Minimum = decimal.MinValue;
+            Vec3NumericX.Maximum = decimal.MaxValue;
+            Vec3NumericX.DecimalPlaces = 3;
+            Vec3NumericX.Location = new Point(ControlBase.Width - Vec3NumericX.Width, yPos);
+            ControlBase.Controls.Add(Vec3NumericX);
 
-            result.X = ((((vector.X - x) / width) * 2.0f) - 1.0f);
-            result.Y = ((((vector.Y - y) / height) * 2.0f) - 1.0f);
-            result.Z = (((vector.Z / (maxZ - minZ)) * 2.0f) - 1.0f);
+            Label propLabelX = new Label();
 
-            result.X =
-                result.X * inverseWorldViewProjection.M11 +
-                result.Y * inverseWorldViewProjection.M21 +
-                result.Z * inverseWorldViewProjection.M31 +
-                inverseWorldViewProjection.M41;
+            propLabelX.Name = prop.Name + "Label";
+            propLabelX.Text = "X " + prop.Name + ": ";
 
-            result.Y =
-                result.X * inverseWorldViewProjection.M12 +
-                result.Y * inverseWorldViewProjection.M22 +
-                result.Z * inverseWorldViewProjection.M32 +
-                inverseWorldViewProjection.M42;
+            propLabelX.Location = new Point(7, yPos);
 
-            result.Z =
-                result.X * inverseWorldViewProjection.M13 +
-                result.Y * inverseWorldViewProjection.M23 +
-                result.Z * inverseWorldViewProjection.M33 +
-                inverseWorldViewProjection.M43;
+            ControlBase.Controls.Add(propLabelX);
 
-            result.W =
-                result.X * inverseWorldViewProjection.M14 +
-                result.Y * inverseWorldViewProjection.M24 +
-                result.Z * inverseWorldViewProjection.M34 +
-                inverseWorldViewProjection.M44;
+            yPos += 26;
 
-            result /= result.W;
+            NumericUpDown Vec3NumericY = new NumericUpDown();
+            Vec3NumericY.Name = prop.Name + ":Y";
+            Vec3NumericY.Minimum = decimal.MinValue;
+            Vec3NumericY.Maximum = decimal.MaxValue;
+            Vec3NumericY.DecimalPlaces = 3;
+            Vec3NumericY.Location = new Point(ControlBase.Width - Vec3NumericY.Width, yPos);
+            ControlBase.Controls.Add(Vec3NumericY);
 
-            return new Vector3(result.X, result.Y, result.Z);
+            Label propLabelY = new Label();
+
+            propLabelY.Name = prop.Name + "Label";
+            propLabelY.Text = "Y " + prop.Name + ": ";
+
+            propLabelY.Location = new Point(7, yPos);
+
+            ControlBase.Controls.Add(propLabelY);
+
+            yPos += 26;
+
+            NumericUpDown Vec3NumericZ = new NumericUpDown();
+            Vec3NumericZ.Name = prop.Name + ":Z";
+            Vec3NumericZ.Minimum = decimal.MinValue;
+            Vec3NumericZ.Maximum = decimal.MaxValue;
+            Vec3NumericZ.DecimalPlaces = 3;
+            Vec3NumericZ.Location = new Point(ControlBase.Width - Vec3NumericZ.Width, yPos);
+            ControlBase.Controls.Add(Vec3NumericZ);
+
+            Label propLabelZ = new Label();
+
+            propLabelZ.Name = prop.Name + "Label";
+            propLabelZ.Text = "Z " + prop.Name + ": ";
+
+            propLabelZ.Location = new Point(7, yPos);
+
+            ControlBase.Controls.Add(propLabelZ);
+
+            yPos += 26;
+
+            return yPos;
         }
 
-        #endregion
+        public void FillGeneral(Chunk chunk)
+        {
+            foreach (ElementProperty prop in chunk.Fields)
+            {
+                if (prop.Name == "Position")
+                {
+                    FillVec3(prop);
+                }
+
+                var control = ControlBase.Controls.Find(prop.Name, false);
+
+                switch (prop.Type)
+                {
+                    case FieldType.Byte:
+                        NumericUpDown byteControl = (NumericUpDown)control[0];
+                        byteControl.Value = (byte)prop.Data;
+                        break;
+                    case FieldType.Short:
+                        NumericUpDown shortControl = (NumericUpDown)control[0];
+                        shortControl.Value = (short)prop.Data;
+                        break;
+                    case FieldType.Integer:
+                        NumericUpDown intControl = (NumericUpDown)control[0];
+                        intControl.Value = (int)prop.Data;
+                        break;
+                    case FieldType.Float:
+                        NumericUpDown floatControl = (NumericUpDown)control[0];
+                        floatControl.Value = Convert.ToDecimal(prop.Data);
+                        break;
+                    case FieldType.Vector2:
+                        //prop.Data = new Vector2(reader.ReadSingle(), reader.ReadSingle());
+                        break;
+                    case FieldType.Vector3:
+                        //prop.Data = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                        break;
+                    case FieldType.String:
+                        TextBox box = (TextBox)control[0];
+                        box.Text = (string)prop.Data;
+                        break;
+                    case FieldType.ListByte:
+                        break;
+                }
+            }
+        }
+
+        private void FillVec3(ElementProperty prop)
+        {
+            Vector3 pos = (Vector3)prop.Data;
+
+            List<NumericUpDown> posControls = new List<NumericUpDown>();
+
+            List<NumericUpDown> vecControls = new List<NumericUpDown>();
+
+            Control[] controlX = ControlBase.Controls.Find("Position:X", false);
+
+            Control[] controlY = ControlBase.Controls.Find("Position:Y", false);
+
+            Control[] controlZ = ControlBase.Controls.Find("Position:Z", false);
+
+            NumericUpDown numControlX = (NumericUpDown)controlX[0];
+
+            NumericUpDown numControlY = (NumericUpDown)controlY[0];
+
+            NumericUpDown numControlZ = (NumericUpDown)controlZ[0];
+
+            numControlX.Value = Convert.ToDecimal(pos.X);
+
+            numControlY.Value = Convert.ToDecimal(pos.Y);
+
+            numControlZ.Value = Convert.ToDecimal(pos.Z);
+        }
+
+        public void Hide()
+        {
+            ControlBase.Hide();
+        }
+
+        public void Show()
+        {
+            ControlBase.Show();
+        }
+
+        public void AddToMainForm(MainUI main)
+        {
+            main.Controls.Add(ControlBase);
+        }
+
+        public void RemoveFromMainForm(MainUI main)
+        {
+            main.Controls.Remove(ControlBase);
+        }
+
+        public void SaveFields(Chunk chunk)
+        {
+            foreach (ElementProperty prop in chunk.Fields)
+            {
+                var control = ControlBase.Controls.Find(prop.Name, false);
+
+                switch (prop.Type)
+                {
+                    case FieldType.Byte:
+                        NumericUpDown byteControl = (NumericUpDown)control[0];
+                        prop.Data = (byte)byteControl.Value;
+                        break;
+                    case FieldType.Short:
+                        NumericUpDown shortControl = (NumericUpDown)control[0];
+                        prop.Data = (short)shortControl.Value;
+                        break;
+                    case FieldType.Integer:
+                        NumericUpDown intControl = (NumericUpDown)control[0];
+                        prop.Data = (int)intControl.Value;
+                        break;
+                    case FieldType.Float:
+                        NumericUpDown floatControl = (NumericUpDown)control[0];
+                        prop.Data = Convert.ToSingle(floatControl.Value);
+                        break;
+                    case FieldType.Vector2:
+                        //prop.Data = new Vector2(reader.ReadSingle(), reader.ReadSingle());
+                        break;
+                    case FieldType.Vector3:
+                        SavePosition(prop);
+                        break;
+                    case FieldType.String:
+                        TextBox box = (TextBox)control[0];
+                        prop.Data = (string)box.Text;
+                        break;
+                    case FieldType.ListByte:
+                        break;
+                }
+            }
+        }
+
+        void SavePosition(ElementProperty prop)
+        {
+            Vector3 pos = (Vector3)prop.Data;
+
+            List<NumericUpDown> posControls = new List<NumericUpDown>();
+
+            List<NumericUpDown> vecControls = new List<NumericUpDown>();
+
+            Control[] controlX = ControlBase.Controls.Find("Position:X", false);
+
+            Control[] controlY = ControlBase.Controls.Find("Position:Y", false);
+
+            Control[] controlZ = ControlBase.Controls.Find("Position:Z", false);
+
+            NumericUpDown numControlX = (NumericUpDown)controlX[0];
+
+            NumericUpDown numControlY = (NumericUpDown)controlY[0];
+
+            NumericUpDown numControlZ = (NumericUpDown)controlZ[0];
+
+            pos.X = Convert.ToSingle(numControlX.Value);
+
+            pos.Y = Convert.ToSingle(numControlY.Value);
+
+            pos.Z = Convert.ToSingle(numControlZ.Value);
+
+            prop.Data = pos;
+        }
+    }
+
+    class CollisionMesh
+    {
+        Vector3[] Vertexes;
+
+        int[] Meshes;
+
+        int _glVbo;
+
+        int _glEbo;
+
+        public void Load(EndianBinaryReader reader)
+        {
+            int numVerts = reader.ReadInt32();
+
+            int vertsOffset = reader.ReadInt32();
+
+            int numFaces = reader.ReadInt32();
+
+            int facesOffset = reader.ReadInt32();
+
+            reader.BaseStream.Position = vertsOffset;
+
+            List<Vector3> vertsList = new List<Vector3>();
+
+            for (int i = 0; i < numVerts; i++)
+            {
+                vertsList.Add(new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
+            }
+
+            Vertexes = vertsList.ToArray();
+
+            reader.BaseStream.Position = facesOffset;
+
+            List<int> facesList = new List<int>();
+
+            for (int i = 0; i < numFaces; i++)
+            {
+                facesList.Add(reader.ReadInt16());
+
+                facesList.Add(reader.ReadInt16());
+
+                facesList.Add(reader.ReadInt16());
+
+                reader.Skip(4);
+            }
+
+            Meshes = facesList.ToArray();
+
+            //Generate a buffer on the GPU and get the ID to it
+            GL.GenBuffers(1, out _glVbo);
+
+            //This "binds" the buffer. Once a buffer is bound, all actions are relative to it until another buffer is bound.
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _glVbo);
+
+            //This uploads data to the currently bound buffer from the CPU -> GPU. This only needs to be done with the data changes (ie: you edited a vertexes position on the cpu side)
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(Vertexes.Length * Vector3.SizeInBytes), Vertexes,
+                BufferUsageHint.StaticDraw);
+
+            //Now we're going to repeat the same process for the Element buffer, which is what OpenGL calls indicies. (Notice how it's basically identical?)
+            GL.GenBuffers(1, out _glEbo);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _glEbo);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(Meshes.Length * 4), Meshes,
+                BufferUsageHint.StaticDraw);
+        }
+
+        public void Render(GLControl Viewport, int _uniformMVP, Matrix4 viewMatrix, Matrix4 projMatrix)
+        {
+            //Build a Model View Projection Matrix. This is where you would add camera movement (modifiying the View matrix), Perspective rendering (perspective matrix) and model position/scale/rotation (Model)
+            Matrix4 modelMatrix = Matrix4.Identity;
+
+            //Bind the buffers that have the data you want to use
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _glVbo);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _glEbo);
+
+            //Then, you have to tell the GPU what the contents of the Array buffer look like. Ie: Is each entry just a position, or does it have a position, color, normal, etc.
+            GL.EnableVertexAttribArray((int)ShaderAttributeIds.Position);
+            GL.VertexAttribPointer((int)ShaderAttributeIds.Position, 3, VertexAttribPointerType.Float, false, Vector3.SizeInBytes, 0);
+
+            //Upload the WVP to the GPU
+            Matrix4 finalMatrix = modelMatrix * viewMatrix * projMatrix;
+            GL.UniformMatrix4(_uniformMVP, false, ref finalMatrix);
+
+            //Now we tell the GPU to actually draw the data we have
+            GL.DrawElements(BeginMode.Triangles, Meshes.Count(), DrawElementsType.UnsignedInt, 0);
+
+            //This is cleanup to undo the changes to the OpenGL state we did to draw this model.
+            GL.DisableVertexAttribArray((int)ShaderAttributeIds.Position);
+        }
+
     }
 }

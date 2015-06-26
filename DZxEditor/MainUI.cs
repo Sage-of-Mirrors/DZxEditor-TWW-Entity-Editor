@@ -158,5 +158,23 @@ namespace DZxEditor
         {
             ProcAddChunk();
         }
+
+        private void exportToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (Work.IsListLoaded)
+            {
+                if (saveFileDialog1.ShowDialog() == DialogResult.OK)
+                {
+                    Work.SaveToDzx(saveFileDialog1.FileName);
+                }
+            }
+        }
+
+        private void Viewport_Leave(object sender, EventArgs e)
+        {
+            //If you don't clear the _keysDown list after leaving the control, a glitch where occur where if you're holding a key when
+            //the control loses focus, Input will report that it is pressed even if you aren't actually pressing it.
+            Input.ClearKeys();
+        }
     }
 }
