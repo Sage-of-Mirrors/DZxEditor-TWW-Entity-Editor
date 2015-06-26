@@ -1,6 +1,6 @@
 ﻿namespace DZxEditor
 {
-    partial class Form1
+    partial class MainUI
     {
         /// <summary>
         /// Required designer variable.

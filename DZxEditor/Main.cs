@@ -60,7 +60,7 @@ namespace DZxEditor
 
         Timer time;
 
-        Form1 MainForm;
+        MainUI MainForm;
 
         Camera Cam;
 
@@ -82,7 +82,7 @@ namespace DZxEditor
 
         #region Init
 
-        public Worker(Form1 mainForm)
+        public Worker(MainUI mainForm)
         {
             Chunks = new List<Chunk>();
 

@@ -12,13 +12,13 @@ using OpenTK.Graphics.OpenGL;
 
 namespace DZxEditor
 {
-    public partial class Form1 : Form
+    public partial class MainUI : Form
     {
         Worker Work;
 
         bool IsTreeNodeClicked = false;
 
-        public Form1()
+        public MainUI()
         {
             InitializeComponent();
 
