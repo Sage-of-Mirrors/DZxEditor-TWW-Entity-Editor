@@ -1,0 +1,14 @@
+{
+	"ChunkID" : "FLOR",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Lower Boundary", "Type" : "Float" },
+		{ "Name" : "Floor ID", "Type" : "Byte" },
+		{ "Name" : "Room IDs", "Type" : "ListByte", "Length" : "15" }
+	]
+}

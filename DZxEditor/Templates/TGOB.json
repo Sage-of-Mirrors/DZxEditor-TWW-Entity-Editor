@@ -1,0 +1,21 @@
+{
+	"ChunkID" : "TGOB",
+	
+	"Geometry" : "Cube",
+	
+	"Color" : "ForestGreen",
+	
+	"Properties" :
+	[
+		{ "Name" : "Name", "Type" : "String", "Length" : "8" },
+		{ "Name" : "Param1", "Type" : "Byte" },
+		{ "Name" : "Param2", "Type" : "Byte" },
+		{ "Name" : "Param3", "Type" : "Byte" },
+		{ "Name" : "Param4", "Type" : "Byte" },
+		{ "Name" : "Position", "Type" : "Vector3" },
+		{ "Name" : "X Rotation", "Type" : "Short" },
+		{ "Name" : "Y Rotation", "Type" : "Short" },
+		{ "Name" : "Flag ID", "Type" : "Short" },
+		{ "Name" : "Enemy Number", "Type" : "Short" }
+	]
+}

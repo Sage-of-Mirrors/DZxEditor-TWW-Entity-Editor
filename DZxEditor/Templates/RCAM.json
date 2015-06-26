@@ -1,0 +1,16 @@
+{
+	"ChunkID" : "RCAM",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Camera Type", "Type" : "String", "Length" : "16" },
+		{ "Name" : "RARO Index", "Type" : "Byte" },
+		{ "Name" : "Unknown1", "Type" : "Byte" },
+		{ "Name" : "Unknown2", "Type" : "Byte" },
+		{ "Name" : "Unknown3", "Type" : "Byte" }
+	]
+}

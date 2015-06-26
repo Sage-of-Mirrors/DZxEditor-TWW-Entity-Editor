@@ -1,0 +1,25 @@
+{
+	"ChunkID" : "TGSC",
+	
+	"Geometry" : "Cube",
+	
+	"Color" : "Goldenrod",
+	
+	"Properties" :
+	[
+		{ "Name" : "Name", "Type" : "String", "Length" : "8" },
+		{ "Name" : "Param1", "Type" : "Byte" },
+		{ "Name" : "Param2", "Type" : "Byte" },
+		{ "Name" : "Param3", "Type" : "Byte" },
+		{ "Name" : "Param4", "Type" : "Byte" },
+		{ "Name" : "Position", "Type" : "Vector3" },
+		{ "Name" : "AuxParam1", "Type" : "Short" },
+		{ "Name" : "Y Rotation", "Type" : "Short" },
+		{ "Name" : "Flag ID", "Type" : "Short" },
+		{ "Name" : "Padding1", "Type" : "Short" },
+		{ "Name" : "X Scale", "Type" : "Byte" },
+		{ "Name" : "Y Scale", "Type" : "Byte" },
+		{ "Name" : "Z Scale", "Type" : "Byte" },
+		{ "Name" : "Padding2", "Type" : "Byte" }
+	]
+}

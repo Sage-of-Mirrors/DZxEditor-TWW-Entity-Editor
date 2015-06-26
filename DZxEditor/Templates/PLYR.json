@@ -1,0 +1,22 @@
+{
+	"ChunkID" : "PLYR",
+	
+	"Geometry" : "Cube",
+	
+	"Color" : "Gold",
+	
+	"Properties" :
+	[
+		{ "Name" : "Name", "Type" : "String", "Length" : "8" },
+		{ "Name" : "Event Index", "Type" : "Byte" },
+		{ "Name" : "Unknown1", "Type" : "Byte" },
+		{ "Name" : "Spawn Type", "Type" : "Byte" },
+		{ "Name" : "Room Number", "Type" : "Byte" },
+		{ "Name" : "Position", "Type" : "Vector3" },
+		{ "Name" : "Unknown2", "Type" : "Short" },
+		{ "Name" : "Y Rotation", "Type" : "Short" },
+		{ "Name" : "Unknown3", "Type" : "Byte" },
+		{ "Name" : "Spawn ID", "Type" : "Byte" },
+		{ "Name" : "Enemy Number", "Type" : "Short" }
+	]
+}

@@ -1,0 +1,20 @@
+{
+	"ChunkID" : "SOND",
+	
+	"Geometry" : "Sphere",
+	
+	"Color" : "Sienna",
+	
+	"Properties" :
+	[
+		{ "Name" : "Name", "Type" : "String", "Length" : "8" },
+		{ "Name" : "Position", "Type" : "Vector3" },
+		{ "Name" : "Unknown1", "Type" : "Byte" },
+		{ "Name" : "Unknown2", "Type" : "Byte" },
+		{ "Name" : "Room Number", "Type" : "Byte" },
+		{ "Name" : "Sound ID", "Type" : "Byte" },
+		{ "Name" : "Sound Radius", "Type" : "Byte" },
+		{ "Name" : "Unknown3", "Type" : "Byte" },
+		{ "Name" : "Unknown4", "Type" : "Short" }
+	]
+}

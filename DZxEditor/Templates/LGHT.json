@@ -1,0 +1,18 @@
+{
+	"ChunkID" : "LGHT",
+	
+	"Geometry" : "Sphere",
+	
+	"Color" : "Khaki",
+	
+	"Properties" :
+	[
+		{ "Name" : "Position", "Type" : "Vector3" },
+		{ "Name" : "Radii", "Type" : "Vector3" },
+		{ "Name" : "Red Value", "Type" : "Byte" },
+		{ "Name" : "Green Value", "Type" : "Byte" },
+		{ "Name" : "Blue Value", "Type" : "Byte" },
+		{ "Name" : "Padding", "Type" : "Byte" }
+		
+	]
+}

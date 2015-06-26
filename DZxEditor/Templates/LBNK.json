@@ -1,0 +1,12 @@
+{
+	"ChunkID" : "LBNK",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "LBNK Entry", "Type" : "Byte" }
+	]
+}

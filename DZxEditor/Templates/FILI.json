@@ -1,0 +1,22 @@
+{
+	"ChunkID" : "FILI",
+		
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Bit Field", "Type" : "Integer" },
+		{ "Name" : "Skybox Transformation", "Type" : "Float" }
+	],
+	
+	"BitField" :
+	[
+		{ "Name" : "Can Play Song of Passing?", "Mask" : "1073741824", "BitShift" : "30" },
+		{ "Name" : "Unknown1", "Mask" : "534773760", "BitShift" : "21" },
+		{ "Name" : "IsWeather", "Mask" : "1048576", "BitShift" : "20" },
+		{ "Name" : "Can use Wind's Requiem?", "Mask" : "786432", "BitShift" : "18" },
+		{ "Name" : "Draw Depth", "Mask" : "32640", "BitShift" : "7" }
+	]
+}

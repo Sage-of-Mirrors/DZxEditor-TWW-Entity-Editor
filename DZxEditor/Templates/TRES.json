@@ -1,0 +1,19 @@
+{
+	"ChunkID" : "TRES",
+	
+	"Geometry" : "Cube",
+	
+	"Color" : "DarkOrchid",
+	
+	"Properties" :
+	[
+		{ "Name" : "Name", "Type" : "String", "Length" : "8" },
+		{ "Name" : "Bit Field", "Type" : "Integer" },
+		{ "Name" : "Position", "Type" : "Vector3" },
+		{ "Name" : "Room Number", "Type" : "Short" },
+		{ "Name" : "Y Rotation", "Type" : "Short" },
+		{ "Name" : "Item ID", "Type" : "Byte" },
+		{ "Name" : "Flag ID", "Type" : "Byte" },
+		{ "Name" : "Padding", "Type" : "Short" }
+	]
+}

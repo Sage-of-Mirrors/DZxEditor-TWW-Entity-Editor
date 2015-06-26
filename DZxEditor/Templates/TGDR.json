@@ -1,0 +1,21 @@
+{
+	"ChunkID" : "TGDR",
+		
+	"Geometry" : "Cube",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Name", "Type" : "String", "Length" : "8" },
+		{ "Name" : "Bit field", "Type" : "Integer" },
+		{ "Name" : "Position", "Type" : "Vector3" },
+		{ "Name" : "Unknown1", "Type" : "Byte" },
+		{ "Name" : "Unknown2", "Type" : "Byte" },
+		{ "Name" : "Y Rotation", "Type" : "Short" },
+		{ "Name" : "Unknown3", "Type" : "Byte" },
+		{ "Name" : "Unknown4", "Type" : "Short" },
+		{ "Name" : "Unknown5", "Type" : "Byte" },
+		{ "Name" : "Unknown6", "Type" : "Integer" },
+	]
+}

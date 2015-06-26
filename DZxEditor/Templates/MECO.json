@@ -1,0 +1,13 @@
+{
+	"ChunkID" : "MECO",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Room Number", "Type" : "Byte" },
+		{ "Name" : "MEMA Index", "Type" : "Byte" }
+	]
+}

@@ -1,0 +1,17 @@
+{
+	"ChunkID" : "PATH",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Number of Waypoints", "Type" : "Short" },
+		{ "Name" : "Path ID", "Type" : "Short" },
+		{ "Name" : "Unknown1", "Type" : "Byte" },
+		{ "Name" : "Unknown2", "Type" : "Byte" },
+		{ "Name" : "Padding", "Type" : "Short" },
+		{ "Name" : "First Waypoint Offset", "Type" : "Integer" }
+	]
+}

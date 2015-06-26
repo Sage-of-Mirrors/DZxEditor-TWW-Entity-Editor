@@ -1,0 +1,16 @@
+{
+	"ChunkID" : "SCLS",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Destination Map", "Type" : "String", "Length" : "8" },
+		{ "Name" : "Spawn ID", "Type" : "Byte" },
+		{ "Name" : "Destination Room Number", "Type" : "Byte" },
+		{ "Name" : "Fade Type", "Type" : "Byte" },
+		{ "Name" : "Padding", "Type" : "Byte" }
+	]
+}

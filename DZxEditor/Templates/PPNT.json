@@ -1,0 +1,15 @@
+{
+	"ChunkID" : "PPNT",
+	
+	"Geometry" : "Sphere",
+	
+	"Color" : "LightSteelBlue",
+	
+	"Properties" :
+	[
+		{ "Name" : "Unknown1", "Type" : "Short" },
+		{ "Name" : "Unknown2", "Type" : "Byte" },
+		{ "Name" : "Unknown3", "Type" : "Byte" },
+		{ "Name" : "Position", "Type" : "Vector3" }
+	]
+}

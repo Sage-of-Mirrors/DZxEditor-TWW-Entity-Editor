@@ -1,0 +1,28 @@
+{
+	"ChunkID" : "2DMA",
+	
+    "Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Full Map X Scale", "Type" : "Float" },
+		{ "Name" : "Full Map Y Scale", "Type" : "Float" },
+		{ "Name" : "Full Map Width", "Type" : "Float" },
+		{ "Name" : "Full Map Height", "Type" : "Float" },
+		{ "Name" : "Full Map X Translation", "Type" : "Float" },
+		{ "Name" : "Full Map Y Translation", "Type" : "Float" },
+		{ "Name" : "Zoomed Map X Scale", "Type" : "Float" },
+		{ "Name" : "Zoomed Map Y Scale", "Type" : "Float" },
+		{ "Name" : "Zoomed Map Width", "Type" : "Float" },
+		{ "Name" : "Zoomed Map Height", "Type" : "Float" },
+		{ "Name" : "Zoomed Map X Translation", "Type" : "Float" },
+		{ "Name" : "Zoomed Map Y Translation", "Type" : "Float" },
+		{ "Name" : "Zoomed Map Scale", "Type" : "Float" },
+		{ "Name" : "Unknown1", "Type" : "Byte" },
+		{ "Name" : "Map Image", "Type" : "Byte" },
+		{ "Name" : "Unknown2", "Type" : "Byte" },
+		{ "Name" : "Padding", "Type" : "Byte" }
+	]
+}

@@ -1,0 +1,15 @@
+{
+	"ChunkID" : "DMAP",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Width", "Type" : "Float" },
+		{ "Name" : "Height", "Type" : "Float" },
+		{ "Name" : "Scale", "Type" : "Float" },
+		{ "Name" : "Unknown1", "Type" : "Float" }
+	]
+}

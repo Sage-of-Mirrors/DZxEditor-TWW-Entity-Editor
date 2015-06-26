@@ -1,0 +1,12 @@
+{
+	"ChunkID" : "MEMA",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Memory Allocation Size", "Type" : "Integer" }
+	]
+}

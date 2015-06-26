@@ -1,0 +1,15 @@
+{
+	"ChunkID" : "SHIP",
+	
+	"Geometry" : "Sphere",
+	
+	"Color" : "DodgerBlue",
+	
+	"Properties" :
+	[
+		{ "Name" : "Position", "Type" : "Vector3" },
+		{ "Name" : "Y Rotation", "Type" : "Short" },
+		{ "Name" : "Spawn ID", "Type" : "Byte" },
+		{ "Name" : "Padding", "Type" : "Byte" }
+	]
+}

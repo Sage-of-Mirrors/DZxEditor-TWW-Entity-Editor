@@ -1,0 +1,11 @@
+{
+	"ChunkID" : "RARO",
+	"Properties" :
+	[
+		{ "Name" : "Position", "Type" : "Vector3" },
+		{ "Name" : "X Rotation", "Type" : "Short" },
+		{ "Name" : "Y Rotation", "Type" : "Short" },
+		{ "Name" : "Z Rotation", "Type" : "Short" },
+		{ "Name" : "Padding", "Type" : "Short" }
+	]
+}

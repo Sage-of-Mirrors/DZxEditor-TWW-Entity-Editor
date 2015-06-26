@@ -1,0 +1,21 @@
+{
+	"ChunkID" : "EVNT",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Unknown1", "Type" : "Byte" },
+		{ "Name" : "Event Name", "Type" : "String", "Length" : "15" },
+		{ "Name" : "Unknown2", "Type" : "Byte" },
+		{ "Name" : "Unknown3", "Type" : "Byte" },
+		{ "Name" : "Unknown4", "Type" : "Byte" },
+		{ "Name" : "Unknown5", "Type" : "Byte" },
+		{ "Name" : "Unknown6", "Type" : "Byte" },
+		{ "Name" : "Unknown7", "Type" : "Byte" },
+		{ "Name" : "Unknown8", "Type" : "Byte" },
+		{ "Name" : "Unknown9", "Type" : "Byte" },
+	]
+}

@@ -1,0 +1,26 @@
+{
+	"ChunkID" : "STAG",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Depth Min", "Type" : "Float" },
+		{ "Name" : "Depth Max", "Type" : "Float" },
+		{ "Name" : "Unknown1", "Type" : "Byte" },
+		{ "Name" : "Area ID", "Type" : "Byte" },
+		{ "Name" : "Particle Bank", "Type" : "Short" },
+		{ "Name" : "Bit Field", "Type" : "Integer" },
+		{ "Name" : "Unknown2", "Type" : "Short" },
+		{ "Name" : "2D Draw Range", "Type" : "Short" },
+	],
+	
+	"BitField" :
+	[
+		{ "Name" : "Stage Properties", "Mask" : "458752", "BitShift" : "16" },
+		{ "Name" : "EnvColor Byte", "Mask" : "65280", "BitShift" : "8" },
+		{ "Name" : "SetSchBit Byte", "Mask" : "255", "BitShift" : "0" }
+	]
+}
