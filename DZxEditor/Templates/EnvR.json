@@ -1,0 +1,12 @@
+{
+	"ChunkID" : "EnvR",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Colo Indexes", "Type" : "ListShort", "Length" : "8" }
+	]
+}

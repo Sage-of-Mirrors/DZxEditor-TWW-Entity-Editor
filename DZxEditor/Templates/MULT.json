@@ -7,7 +7,7 @@
 	
 	"Properties" :
 	[
-		{ "Name" : "X/Y Translation", "Type" : "Vector2" },
+		{ "Name" : "Translation", "Type" : "Vector2" },
 		{ "Name" : "Y Rotation", "Type" : "Short" },
 		{ "Name" : "Room Number", "Type" : "Byte" },
 		{ "Name" : "Unknown1", "Type" : "Byte" }

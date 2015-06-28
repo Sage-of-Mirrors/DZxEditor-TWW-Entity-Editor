@@ -1,0 +1,23 @@
+{
+	"ChunkID" : "Virt",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Unknown1", "Type" : "Integer" },
+		{ "Name" : "Unknown2", "Type" : "Integer" },
+		{ "Name" : "Unknown3", "Type" : "Integer" },
+		{ "Name" : "Unknown4", "Type" : "Integer" },
+		{ "Name" : "Horizon Cloud Color", "Type" : "ColorAlpha" },
+		{ "Name" : "Center Cloud Color", "Type" : "ColorAlpha" },
+		{ "Name" : "Sky Color", "Type" : "Color" },
+		{ "Name" : "Horizon Color", "Type" : "Color" },
+		{ "Name" : "Sky Fade Color", "Type" : "Color" },
+		{ "Name" : "Padding1", "Type" : "Byte" },
+		{ "Name" : "Padding2", "Type" : "Byte" },
+		{ "Name" : "Padding3", "Type" : "Byte" }
+	]
+}

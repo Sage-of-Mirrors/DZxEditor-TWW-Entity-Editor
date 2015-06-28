@@ -1,0 +1,12 @@
+{
+	"ChunkID" : "Colo",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Pale Indexes", "Type" : "ListByte", "Length" : "12" }
+	]
+}

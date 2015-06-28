@@ -24,11 +24,19 @@ namespace DZxEditor
 
             Work = new Worker(this);
 
-            //FileStream stream = new FileStream("C:\\Program Files (x86)\\SZS Tools\\De-Arc-ed Stage\\Hyroom.wrkDir\\Room0\\dzr\\room.dzr", FileMode.Open);
+            FileStream stream = new FileStream("C:\\Program Files (x86)\\SZS Tools\\Root Pure\\res\\Stage\\A_mori\\Stage.arc", FileMode.Open);
 
-            //EndianBinaryReader reader = new EndianBinaryReader(stream, Endian.Big);
+            EndianBinaryReader reader = new EndianBinaryReader(stream, Endian.Big);
 
-            //Work.Read(reader, Viewport);
+            reader.BaseStream.Position += 4;
+
+            byte[] test = Work.DecodeYaz0(reader);
+
+            FileStream outSTream = new FileStream("C:\\Program Files (x86)\\SZS Tools\\amoristagetest.arc", FileMode.Create);
+
+            EndianBinaryWriter writer = new EndianBinaryWriter(outSTream, Endian.Big);
+
+            writer.Write(test);
         }
 
         private void Viewport_Load(object sender, EventArgs e)
@@ -175,6 +183,25 @@ namespace DZxEditor
             //If you don't clear the _keysDown list after leaving the control, a glitch where occur where if you're holding a key when
             //the control loses focus, Input will report that it is pressed even if you aren't actually pressing it.
             Input.ClearKeys();
+        }
+
+        private void opendzrdzsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                Work.LoadFromDzx(openFileDialog1.FileName);
+            }
+        }
+
+        private void exportToArchiveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (Work.IsListLoaded)
+            {
+                if (saveFileDialog1.ShowDialog() == DialogResult.OK)
+                {
+                    Work.SaveToArc(saveFileDialog1.FileName);
+                }
+            }
         }
     }
 }

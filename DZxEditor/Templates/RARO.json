@@ -1,5 +1,10 @@
 {
 	"ChunkID" : "RARO",
+		
+	"Geometry" : "Sphere",
+	
+	"Color" : "LightGoldenrodYellow",
+	
 	"Properties" :
 	[
 		{ "Name" : "Position", "Type" : "Vector3" },

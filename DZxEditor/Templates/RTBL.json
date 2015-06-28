@@ -7,6 +7,10 @@
 	
 	"Properties" :
 	[
-
+		{ "Name" : "Room Count", "Type" : "Byte" },
+		{ "Name" : "Time passes?", "Type" : "Short" },
+		{ "Name" : "Unknown1", "Type" : "Byte" },
+		{ "Name" : "Room List Offset", "Type" : "Integer" },
+		{ "Name" : "Rooms", "Type" : "ListByte" }
 	]
 }

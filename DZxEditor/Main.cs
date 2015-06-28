@@ -24,6 +24,9 @@ namespace DZxEditor
         Float,
         String,
         ListByte,
+        ListShort,
+        Color,
+        ColorAlpha,
         Vector2,
         Vector3
     }
@@ -74,6 +77,8 @@ namespace DZxEditor
 
         CollisionMesh Collision;
 
+        List<FileData> FilesFromArc;
+
         public bool IsListLoaded = false;
 
         int _programID;
@@ -105,8 +110,11 @@ namespace DZxEditor
 
             foreach (var file in dI.GetFiles())
             {
-                var template = JsonConvert.DeserializeObject<EntityTemplate>(File.ReadAllText(file.FullName));
-                itemTemplates.Add(template);
+                if (file.Name.Contains(".json"))
+                {
+                    var template = JsonConvert.DeserializeObject<EntityTemplate>(File.ReadAllText(file.FullName));
+                    itemTemplates.Add(template);
+                }
             }
 
             return itemTemplates;
@@ -116,13 +124,20 @@ namespace DZxEditor
         {
             List<ControlObject> controlList = new List<ControlObject>();
 
-            foreach (EntityTemplate template in ChunkTemplates)
+            string lastChunkType = "NULL";
+
+            foreach (Chunk chunk in Chunks)
             {
-                ControlObject obj = new ControlObject();
+                if (chunk.ChunkType != lastChunkType)
+                {
+                    ControlObject obj = new ControlObject();
 
-                obj.Load(template);
+                    obj.Load(chunk);
 
-                controlList.Add(obj);
+                    controlList.Add(obj);
+
+                    lastChunkType = chunk.ChunkType;
+                }
             }
 
             return controlList;
@@ -248,29 +263,176 @@ namespace DZxEditor
 
         public void LoadFromArc(string fileName)
         {
-            RARC arc = new RARC(fileName);
+            string tempFileName = "";
 
-            for (int i = 0; i < arc.Nodes.Count(); i++)
+            using (FileStream yaz0TestStream = new FileStream(fileName, FileMode.Open))
             {
-                for (int j = 0; j < arc.Nodes[i].Entries.Count(); j++)
+
+                EndianBinaryReader yaz0TestReader = new EndianBinaryReader(yaz0TestStream, Endian.Big);
+
+                string yaz0Test = yaz0TestReader.ReadString(4);
+
+                if (yaz0Test == "Yaz0")
                 {
-                    if (arc.Nodes[i].Entries[j].Name.Contains(".dzr"))
+                    byte[] uncompressedArc = DecodeYaz0(yaz0TestReader);
+
+                    yaz0TestReader.Close();
+
+                    fileName = Path.GetTempFileName();
+
+                    tempFileName = fileName;
+
+                    FileInfo info = new FileInfo(fileName);
+
+                    info.Attributes = FileAttributes.Temporary;
+
+                    using (FileStream tempStream = new FileStream(fileName, FileMode.Open))
                     {
-                        EndianBinaryReader reader = new EndianBinaryReader(arc.Nodes[i].Entries[j].Data, Endian.Big);
+                        EndianBinaryWriter tempWriter = new EndianBinaryWriter(tempStream, Endian.Big);
 
-                        Read(reader);
+                        tempWriter.Write(uncompressedArc);
 
-                        IsListLoaded = true;
+                        tempWriter.Flush();
+
+                        tempWriter.Close();
                     }
+                }
+            }
 
-                    if (arc.Nodes[i].Entries[j].Name.Contains(".dzb"))
+            RARC loadedArc = new RARC(fileName);
+
+            if (File.Exists(tempFileName))
+            {
+                File.Delete(tempFileName);
+            }
+
+            FilesFromArc = new List<FileData>();
+
+            for (int i = 0; i < loadedArc.Nodes.Count(); i++)
+            {
+                for (int j = 0; j < loadedArc.Nodes[i].Entries.Count(); j++)
+                {
+                    if (loadedArc.Nodes[i].Entries[j].Data != null)
                     {
-                        EndianBinaryReader dzbReader = new EndianBinaryReader(arc.Nodes[i].Entries[j].Data, Endian.Big);
+                        FileData file = new FileData();
+
+                        file.Name = loadedArc.Nodes[i].Entries[j].Name;
+
+                        file.Data = loadedArc.Nodes[i].Entries[j].Data;
+
+                        FilesFromArc.Add(file);
+                    }
+                }
+            }
+
+            foreach (FileData file in FilesFromArc)
+            {
+                if (file.Name.Contains(".dzb"))
+                {
+                    using (EndianBinaryReader reader = new EndianBinaryReader(file.Data, Endian.Big))
+                    {
 
                         Collision = new CollisionMesh();
 
-                        Collision.Load(dzbReader);
+                        Collision.Load(reader);
                     }
+                }
+
+                if (file.Name.Contains(".dzs") || file.Name.Contains(".dzr"))
+                {
+                    using (EndianBinaryReader reader = new EndianBinaryReader(file.Data, Endian.Big))
+                    {
+                        Read(reader);
+                    }
+                }
+
+                if (file.Name.Contains(".bdl") || file.Name.Contains(".bmd"))
+                {
+                    //Not implemented
+                }
+            }
+        }
+
+        public void LoadFromDzx(string fileName)
+        {
+            if ((fileName.Contains(".dzr")) || (fileName.Contains(".dzs")))
+            {
+                FileStream stream = new FileStream(fileName, FileMode.Open);
+
+                EndianBinaryReader reader = new EndianBinaryReader(stream, Endian.Big);
+
+                Read(reader);
+            }
+        }
+
+        public void SaveToArc(string fileName)
+        {
+            FileStream stream = new FileStream(fileName, FileMode.Create);
+            EndianBinaryWriter writer = new EndianBinaryWriter(stream, Endian.Big);
+
+            RARCPacker packer = new RARCPacker();
+
+            string[] deconstructedFileName = fileName.Split('\\');
+
+            string[] nameFromExtension = deconstructedFileName[deconstructedFileName.Length - 1].Split('.');
+
+            string actualName = nameFromExtension[0];
+
+            MemoryStream memStream = new MemoryStream();
+
+            EndianBinaryWriter arrayWriter = new EndianBinaryWriter(memStream, Endian.Big);
+
+            Write(arrayWriter);
+
+            byte[] fileData = memStream.ToArray();
+
+            FileData file = FilesFromArc.Find(x => x.Name.Contains(".dzr"));
+
+            if (file == null)
+            {
+                file = FilesFromArc.Find(x => x.Name.Contains(".dzs"));
+            }
+
+            file.Data = fileData;
+
+            VirtualFolder root = MakeVirtualDir(actualName);
+
+            packer.Pack(root, writer);
+        }
+
+        void ChunkListToByteArray(EndianBinaryWriter writer)
+        {
+            IEnumerable<IGrouping<string, Chunk>> query = Chunks.GroupBy(x => x.ChunkType, x => x);
+
+            int numUniqueChunks = (int)query.Count<IGrouping<string, Chunk>>();
+
+            writer.Write(numUniqueChunks);
+
+            foreach (IGrouping<string, Chunk> chunk in query)
+            {
+                writer.WriteFixedString(chunk.Key, 4);
+
+                writer.Write((int)chunk.Count());
+
+                writer.Write((int)0);
+            }
+
+            for (int i = 0; i < numUniqueChunks; i++)
+            {
+                int offsetFieldOffset = (4 * (1 + i)) + (8 * (1 + i));
+
+                int currentWriterOffset = (int)writer.BaseStream.Position;
+
+                writer.BaseStream.Position = offsetFieldOffset;
+
+                writer.Write(currentWriterOffset);
+
+                writer.BaseStream.Position = currentWriterOffset;
+
+                foreach (Chunk chun in query.ElementAt(i))
+                {
+                    string chunkName = chun.ChunkType.Remove(chun.ChunkType.Length - 1);
+                    chun.Write(writer, ChunkTemplates.Find(x => x.ChunkID.Contains(chunkName)));
                 }
             }
         }
@@ -286,11 +448,18 @@ namespace DZxEditor
 
         void Read(EndianBinaryReader reader)
         {
+            if (CurrentControl != null)
+            {
+                CurrentControl.Hide();
+
+                CurrentControl.RemoveFromMainForm(MainForm);
+
+                CurrentControl = null;
+            }
+
             Cam = new Camera();
 
             ChunkTemplates = LoadTemplates();
-
-            Controls = LoadControls();
 
             Chunks.Clear();
 
@@ -312,20 +481,15 @@ namespace DZxEditor
 
                 reader.BaseStream.Position = chunksOffset;
 
+                if (chunkName == "RTBL")
+                {
+                    //Skip offset bank, which is a table of integers
+                    reader.BaseStream.Position += 4 * numChunks;
+                }
+
                 for (int j = 0; j < numChunks; j++)
                 {
                     Chunk newChunk = new Chunk();
-
-                    if (chunkName == "RTBL")
-                    {
-                        EntityTemplate template = ChunkTemplates.Find(x => x.ChunkID == "RTBL");
-
-                        newChunk = template.ProcessRTBL(reader, numChunks);
-
-                        Chunks.Add(newChunk);
-
-                        continue;
-                    }
 
                     newChunk.Read(reader, chunkName, ChunkTemplates);
 
@@ -340,6 +504,10 @@ namespace DZxEditor
             MainForm.ElementView.SelectedNode = MainForm.ElementView.Nodes[0];
 
             SelectedChunk = Chunks[0];
+
+            Controls = LoadControls();
+
+            IsListLoaded = true;
         }
 
         void Write(EndianBinaryWriter writer)
@@ -377,6 +545,145 @@ namespace DZxEditor
                     chun.Write(writer, ChunkTemplates.Find(x => x.ChunkID.Contains(chunkName)));
                 }
             }
+        }
+
+        VirtualFolder MakeVirtualDir(string fileName)
+        {
+            VirtualFolder root = new VirtualFolder();
+
+            root.Name = fileName;
+
+            root.NodeName = "ROOT";
+
+            root.Subdirs = new List<VirtualFolder>();
+
+            root.Files = new List<FileData>();
+
+            string lastExtension = "";
+
+            VirtualFolder lastFolder = new VirtualFolder();
+
+            foreach (FileData data in FilesFromArc)
+            {
+                string[] fileNameSplit = data.Name.Split('.');
+
+                string fileExtension = "";
+
+                if (fileNameSplit.Length == 2)
+                {
+                    fileExtension = fileNameSplit[1];
+                }
+
+                if (fileExtension == "bti")
+                {
+                    fileExtension = "tex";
+                }
+
+                if (fileExtension == lastExtension)
+                {
+                    lastFolder.Files.Add(data);
+
+                    continue;
+                }
+
+                VirtualFolder folder = new VirtualFolder();
+
+                folder.Name = fileExtension;
+
+                folder.NodeName = fileExtension.ToUpper() + " ";
+
+                folder.Subdirs = new List<VirtualFolder>();
+
+                folder.Files = new List<FileData>();
+
+                folder.Files.Add(data);
+
+                root.Subdirs.Add(folder);
+
+                lastExtension = fileExtension;
+
+                lastFolder = folder;
+            }
+
+            return root;
+        }
+
+        public byte[] DecodeYaz0(EndianBinaryReader reader)
+        {
+            int uncompressedSize = reader.ReadInt32();
+
+            byte[] dest = new byte[uncompressedSize];
+
+            int srcPlace = 0x10, dstPlace = 0; //current read/write positions
+
+            int validBitCount = 0; //number of valid bits left in "code" byte
+
+            byte currCodeByte = 0;
+
+            while (dstPlace < uncompressedSize)
+            {
+                //read new "code" byte if the current one is used up
+                if (validBitCount == 0)
+                {
+                    currCodeByte = reader.ReadByteAt(srcPlace);
+
+                    ++srcPlace;
+
+                    validBitCount = 8;
+                }
+
+                if ((currCodeByte & 0x80) != 0)
+                {
+                    //straight copy
+                    dest[dstPlace] = reader.ReadByteAt(srcPlace);
+
+                    dstPlace++;
+
+                    srcPlace++;
+                }
+
+                else
+                {
+                    //RLE part
+                    byte byte1 = reader.ReadByteAt(srcPlace);
+
+                    byte byte2 = reader.ReadByteAt(srcPlace + 1);
+
+                    srcPlace += 2;
+
+                    int dist = ((byte1 & 0xF) << 8) | byte2;
+
+                    int copySource = dstPlace - (dist + 1);
+
+                    int numBytes = byte1 >> 4;
+
+                    if (numBytes == 0)
+                    {
+                        numBytes = reader.ReadByteAt(srcPlace) + 0x12;
+                        srcPlace++;
+                    }
+
+                    else
+                        numBytes += 2;
+
+                    //copy run
+                    for (int i = 0; i < numBytes; ++i)
+                    {
+                        dest[dstPlace] = dest[copySource];
+
+                        copySource++;
+
+                        dstPlace++;
+                    }
+                }
+
+                //use next bit from "code" byte
+                currCodeByte <<= 1;
+
+                validBitCount -= 1;
+            }
+
+            return dest;
         }
 
         #endregion
@@ -840,19 +1147,21 @@ namespace DZxEditor
     [Serializable]
     public class Chunk
     {
+        #region Variables
+
         public string ChunkType;
 
         public string DisplayName;
 
         public GeometryType Geometry;
 
+        public Vector3 Position;
+
         Color4 ActualColor;
 
         public Color4 DisplayColor;
 
         public List<ElementProperty> Fields;
-
-        public Vector3 Position;
 
         Vector3[] Vertexes;
 
@@ -862,7 +1171,7 @@ namespace DZxEditor
 
         int _glEbo;
 
-        public float RayResult;
+        #endregion
 
         public Chunk()
         {
@@ -880,6 +1189,10 @@ namespace DZxEditor
         public void Read(EndianBinaryReader reader, string type, List<EntityTemplate> templates)
         {
             ChunkType = type;
+
+            if (ChunkType == "RTBL")
+            {
+            }
 
             DisplayName = ChunkType;
 
@@ -924,12 +1237,56 @@ namespace DZxEditor
                     case FieldType.ListByte:
                         List<byte> byteList = new List<byte>();
 
+                        int readerOffsetStorage = (int)reader.BaseStream.Position;
+
+                        if (ChunkType == "RTBL")
+                        {
+                            int roomListOffset = (int)template.Properties.Find(x => x.Name == "Room List Offset").Data;
+
+                            readerOffsetStorage = (int)reader.BaseStream.Position;
+
+                            reader.BaseStream.Position = roomListOffset;
+
+                            prop.Length = Convert.ToInt32(template.Properties.Find(x => x.Name == "Room Count").Data);
+                        }
+
                         for (int i = 0; i < prop.Length; i++)
                         {
                             byteList.Add(reader.ReadByte());
                         }
 
                         prop.Data = byteList;
+
+                        if (ChunkType == "RTBL")
+                        {
+                            reader.BaseStream.Position = readerOffsetStorage;
+                        }
+                        break;
+                    case FieldType.ListShort:
+                        List<short> shortList = new List<short>();
+
+                        for (int i = 0; i < prop.Length; i++)
+                        {
+                            shortList.Add(reader.ReadInt16());
+                        }
+
+                        prop.Data = shortList;
+                        break;
+                    case FieldType.Color:
+                        Color color = Color.FromArgb((int)reader.ReadByte(), (int)reader.ReadByte(), (int)reader.ReadByte());
+
+                        prop.Data = color;
+                        break;
+                    case FieldType.ColorAlpha:
+
+                        int r = (int)reader.ReadByte();
+                        int g = (int)reader.ReadByte();
+                        int b = (int)reader.ReadByte();
+                        int a = (int)reader.ReadByte();
+
+                        Color colorAlpha = Color.FromArgb(a, r, g, b);
+
+                        prop.Data = colorAlpha;
                         break;
                 }
             }
@@ -1059,10 +1416,16 @@ namespace DZxEditor
                 switch (prop.Type)
                 {
                     case FieldType.Byte:
+                        prop.Data = (byte)0;
+                        break;
                     case FieldType.Short:
+                        prop.Data = (short)0;
+                        break;
                     case FieldType.Integer:
+                        prop.Data = (int)0;
+                        break;
                     case FieldType.Float:
-                        prop.Data = 0;
+                        prop.Data = 0.0f;
                         break;
                     case FieldType.Vector2:
                         prop.Data = new Vector2();
@@ -1312,67 +1675,13 @@ namespace DZxEditor
 
                     int propValue = (fieldValue & BitField[i].Mask) >> BitField[i].BitShift;
 
-                    prop.MakeProperty(BitField[i].Name, FieldType.Integer, propValue);
+                    prop.MakeProperty(BitField[i].Name, FieldType.Integer, (int)propValue);
 
                     Properties.Insert(Properties.IndexOf(Properties.Find(x => x.Name == "Bit Field")), prop);
                 }
 
                 Properties.Remove(Properties.Find(y => y.Name == "Bit Field"));
             }
-        }
-
-        public Chunk ProcessRTBL(EndianBinaryReader reader, int numChunks)
-        {
-            Chunk rtblChunk = new Chunk();
-
-            int elementOffset = reader.ReadInt32();
-
-            int offsetStorage = (int)reader.BaseStream.Position;
-
-            reader.BaseStream.Position = elementOffset;
-
-            ElementProperty roomNumProp = new ElementProperty();
-
-            byte roomNum = reader.ReadByte();
-
-            roomNumProp.MakeProperty("Number of Rooms", FieldType.Byte, roomNum);
-
-            rtblChunk.AddField(roomNumProp);
-
-            ElementProperty isTimePassProp = new ElementProperty();
-
-            short isTimePass = reader.ReadInt16();
-
-            isTimePassProp.MakeProperty("Does time pass?", FieldType.Short, isTimePass);
-
-            rtblChunk.AddField(isTimePassProp);
-
-            ElementProperty unknownProp = new ElementProperty();
-
-            unknownProp.MakeProperty("Unknown1", FieldType.Byte, reader.ReadByte());
-
-            rtblChunk.AddField(unknownProp);
-
-            int roomTableOffset = reader.ReadInt32();
-
-            reader.BaseStream.Position = roomTableOffset;
-
-            List<byte> roomList = new List<byte>();
-
-            for (int i = 0; i < roomNum; i++)
-            {
-                roomList.Add(reader.ReadByte());
-            }
-
-            ElementProperty roomListProp = new ElementProperty();
-
-            roomListProp.MakeProperty("Room List", FieldType.ListByte, roomList);
-
-            rtblChunk.AddField(roomListProp);
-
-            reader.BaseStream.Position = offsetStorage;
-
-            return rtblChunk;
         }
     }
 
@@ -1427,9 +1736,9 @@ namespace DZxEditor
 
         Panel ControlBase;
 
-        public void Load(EntityTemplate template)
+        public void Load(Chunk chunk)
         {
-            ChunkID = template.ChunkID;
+            ChunkID = chunk.ChunkType;
 
             ControlBase = new Panel();
 
@@ -1439,7 +1748,7 @@ namespace DZxEditor
 
             int controlYPos = 13;
 
-            foreach (ElementProperty prop in template.Properties)
+            foreach (ElementProperty prop in chunk.Fields)
             {
                 switch (prop.Type)
                 {
@@ -1477,20 +1786,8 @@ namespace DZxEditor
                         ControlBase.Controls.Add(FloatNumeric);
                         break;
                     case FieldType.Vector2:
-                        NumericUpDown Vec2NumericX = new NumericUpDown();
-                        Vec2NumericX.Name = prop.Name + ":X";
-                        Vec2NumericX.Minimum = decimal.MinValue;
-                        Vec2NumericX.Maximum = decimal.MaxValue;
-                        Vec2NumericX.DecimalPlaces = 3;
-                        ControlBase.Controls.Add(Vec2NumericX);
-                        
-                        NumericUpDown Vec2NumericY = new NumericUpDown();
-                        Vec2NumericY.Name = prop.Name + ":Y";
-                        Vec2NumericY.Minimum = decimal.MinValue;
-                        Vec2NumericY.Maximum = decimal.MaxValue;
-                        Vec2NumericY.DecimalPlaces = 3;
-                        ControlBase.Controls.Add(Vec2NumericY);
-                        break;
+                        controlYPos = LoadVec2Controls(controlYPos, prop);
+                        continue;
                     case FieldType.Vector3:
                         controlYPos = LoadVec3Controls(controlYPos, prop);
                         continue;
@@ -1516,6 +1813,49 @@ namespace DZxEditor
 
                 controlYPos += 26;
             }
+        }
+
+        private int LoadVec2Controls(int yPos, ElementProperty prop)
+        {
+            NumericUpDown Vec2NumericX = new NumericUpDown();
+            Vec2NumericX.Name = prop.Name + ":X";
+            Vec2NumericX.Minimum = decimal.MinValue;
+            Vec2NumericX.Maximum = decimal.MaxValue;
+            Vec2NumericX.DecimalPlaces = 3;
+            Vec2NumericX.Location = new Point(ControlBase.Width - Vec2NumericX.Width, yPos);
+            ControlBase.Controls.Add(Vec2NumericX);
+
+            Label propLabelX = new Label();
+
+            propLabelX.Name = prop.Name + "Label";
+            propLabelX.Text = "X " + prop.Name + ": ";
+
+            propLabelX.Location = new Point(7, yPos);
+
+            ControlBase.Controls.Add(propLabelX);
+
+            yPos += 26;
+
+            NumericUpDown Vec2NumericY = new NumericUpDown();
+            Vec2NumericY.Name = prop.Name + ":Y";
+            Vec2NumericY.Minimum = decimal.MinValue;
+            Vec2NumericY.Maximum = decimal.MaxValue;
+            Vec2NumericY.DecimalPlaces = 3;
+            Vec2NumericY.Location = new Point(ControlBase.Width - Vec2NumericY.Width, yPos);
+            ControlBase.Controls.Add(Vec2NumericY);
+
+            Label propLabelY = new Label();
+
+            propLabelY.Name = prop.Name + "Label";
+            propLabelY.Text = "Y " + prop.Name + ": ";
+
+            propLabelY.Location = new Point(7, yPos);
+
+            ControlBase.Controls.Add(propLabelY);
+
+            yPos += 26;
+
+            return yPos;
         }
 
         private int LoadVec3Controls(int yPos, ElementProperty prop)

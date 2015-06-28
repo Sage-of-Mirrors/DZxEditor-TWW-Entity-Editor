@@ -1,0 +1,25 @@
+{
+	"ChunkID" : "Pale",
+	
+	"Geometry" : "None",
+	
+	"Color" : "Black",
+	
+	"Properties" :
+	[
+		{ "Name" : "Actor Ambient Color", "Type" : "Color" },
+		{ "Name" : "Shadow Color", "Type" : "Color" },
+		{ "Name" : "Fill Color", "Type" : "Color" },
+		{ "Name" : "Room Ambient Color", "Type" : "Color" },
+		{ "Name" : "Wave Color", "Type" : "Color" },
+		{ "Name" : "Ocean Color", "Type" : "Color" },
+		{ "Name" : "UnknownWhite1 Color", "Type" : "Color" },
+		{ "Name" : "UnknownWhite2 Color", "Type" : "Color" },
+		{ "Name" : "Doorway Color", "Type" : "Color" },
+		{ "Name" : "Unknown3 Color", "Type" : "Color" },
+		{ "Name" : "Fog Color", "Type" : "Color" },
+		{ "Name" : "Virt Index", "Type" : "Byte" },
+		{ "Name" : "Ocean Fade Color", "Type" : "ColorAlpha" },
+		{ "Name" : "Shore Fade Color", "Type" : "ColorAlpha" }
+	]
+}

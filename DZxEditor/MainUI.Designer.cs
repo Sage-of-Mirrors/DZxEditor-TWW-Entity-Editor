@@ -32,6 +32,7 @@
             this.Viewport = new OpenTK.GLControl();
             this.ElementView = new System.Windows.Forms.TreeView();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.label1 = new System.Windows.Forms.Label();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.addToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addChunkToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
@@ -41,10 +42,11 @@
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openarcToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.opendzrdzsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportToArchiveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addChunkToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
-            this.label1 = new System.Windows.Forms.Label();
-            this.exportToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.panel1.SuspendLayout();
             this.contextMenuStrip1.SuspendLayout();
@@ -91,6 +93,15 @@
             this.panel1.Size = new System.Drawing.Size(129, 391);
             this.panel1.TabIndex = 2;
             this.panel1.Visible = false;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(7, 13);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(35, 13);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "label1";
             // 
             // contextMenuStrip1
             // 
@@ -153,6 +164,8 @@
             // 
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.openarcToolStripMenuItem,
+            this.opendzrdzsToolStripMenuItem,
+            this.exportToArchiveToolStripMenuItem,
             this.exportToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
@@ -161,9 +174,30 @@
             // openarcToolStripMenuItem
             // 
             this.openarcToolStripMenuItem.Name = "openarcToolStripMenuItem";
-            this.openarcToolStripMenuItem.Size = new System.Drawing.Size(130, 22);
+            this.openarcToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
             this.openarcToolStripMenuItem.Text = "Open *.arc";
             this.openarcToolStripMenuItem.Click += new System.EventHandler(this.openarcToolStripMenuItem_Click);
+            // 
+            // opendzrdzsToolStripMenuItem
+            // 
+            this.opendzrdzsToolStripMenuItem.Name = "opendzrdzsToolStripMenuItem";
+            this.opendzrdzsToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
+            this.opendzrdzsToolStripMenuItem.Text = "Open *.dzr/*.dzs";
+            this.opendzrdzsToolStripMenuItem.Click += new System.EventHandler(this.opendzrdzsToolStripMenuItem_Click);
+            // 
+            // exportToArchiveToolStripMenuItem
+            // 
+            this.exportToArchiveToolStripMenuItem.Name = "exportToArchiveToolStripMenuItem";
+            this.exportToArchiveToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
+            this.exportToArchiveToolStripMenuItem.Text = "Export to Archive";
+            this.exportToArchiveToolStripMenuItem.Click += new System.EventHandler(this.exportToArchiveToolStripMenuItem_Click);
+            // 
+            // exportToolStripMenuItem
+            // 
+            this.exportToolStripMenuItem.Name = "exportToolStripMenuItem";
+            this.exportToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
+            this.exportToolStripMenuItem.Text = "Export to DZx File";
+            this.exportToolStripMenuItem.Click += new System.EventHandler(this.exportToolStripMenuItem_Click);
             // 
             // addChunkToolStripMenuItem
             // 
@@ -175,22 +209,6 @@
             // openFileDialog1
             // 
             this.openFileDialog1.FileName = "openFileDialog1";
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(7, 13);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(35, 13);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "label1";
-            // 
-            // exportToolStripMenuItem
-            // 
-            this.exportToolStripMenuItem.Name = "exportToolStripMenuItem";
-            this.exportToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
-            this.exportToolStripMenuItem.Text = "Export to DZx File";
-            this.exportToolStripMenuItem.Click += new System.EventHandler(this.exportToolStripMenuItem_Click);
             // 
             // MainUI
             // 
@@ -233,6 +251,8 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ToolStripMenuItem exportToolStripMenuItem;
         private System.Windows.Forms.SaveFileDialog saveFileDialog1;
+        private System.Windows.Forms.ToolStripMenuItem opendzrdzsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportToArchiveToolStripMenuItem;
     }
 }
 
