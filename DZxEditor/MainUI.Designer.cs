@@ -80,7 +80,6 @@
             this.ElementView.Name = "ElementView";
             this.ElementView.Size = new System.Drawing.Size(166, 391);
             this.ElementView.TabIndex = 1;
-            this.ElementView.BeforeSelect += new System.Windows.Forms.TreeViewCancelEventHandler(this.ElementView_BeforeSelect);
             this.ElementView.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.ElementView_AfterSelect);
             this.ElementView.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.ElementView_NodeMouseClick);
             // 

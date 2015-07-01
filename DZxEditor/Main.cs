@@ -25,6 +25,7 @@ namespace DZxEditor
         String,
         ListByte,
         ListShort,
+        ListRPPN,
         Color,
         ColorAlpha,
         Vector2,
@@ -37,6 +38,7 @@ namespace DZxEditor
         Cube,
         Sphere,
         Pyramid,
+        LineStrip,
         Door
     }
 
@@ -499,6 +501,15 @@ namespace DZxEditor
                 reader.BaseStream.Position = readerOffsetStorage;
             }
 
+            foreach (Chunk chunk in Chunks)
+            {
+                string chunkSearchString = chunk.ChunkType.Remove(chunk.ChunkType.Length - 1);
+
+                EntityTemplate template = ChunkTemplates.Find(x => x.ChunkID.Contains(chunkSearchString));
+
+                template.ReadSpecialProcess(chunk.Fields, Chunks);
+            }
+
             UpdateTreeView();
 
             MainForm.ElementView.SelectedNode = MainForm.ElementView.Nodes[0];
@@ -776,23 +787,46 @@ namespace DZxEditor
 
             foreach (Chunk chun in Chunks)
             {
-                if (chun.Geometry != GeometryType.None)
+                switch (chun.Geometry)
                 {
-                    GL.Enable(EnableCap.PolygonOffsetFill);
-                    GL.PolygonOffset(1.0f, 1.0f);
-                    chun.Render(MainForm.Viewport, _uniformMVP, _uniformColor, ViewMatrix, ProjMatrix);
-                    GL.Disable(EnableCap.PolygonOffsetFill);
+                    case GeometryType.Sphere:
+                    case GeometryType.Cube:
+                        GL.Enable(EnableCap.PolygonOffsetFill);
 
-                    GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-                    chun.DisplayColor = Color.Black;
-                    chun.Render(MainForm.Viewport, _uniformMVP, _uniformColor, ViewMatrix, ProjMatrix);
+                        GL.PolygonOffset(1.0f, 1.0f);
 
-                    if (chun == SelectedChunk)
-                        chun.DisplayColor = Color.Red;
+                        chun.Render(_uniformMVP, _uniformColor, ViewMatrix, ProjMatrix);
 
-                    else
-                        chun.ResetDisplayColor();
-                    GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+                        GL.Disable(EnableCap.PolygonOffsetFill);
+
+                        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+
+                        chun.DisplayColor = Color.Black;
+
+                        chun.Render(_uniformMVP, _uniformColor, ViewMatrix, ProjMatrix);
+
+                        if (chun == SelectedChunk)
+                            chun.DisplayColor = Color.Red;
+
+                        else
+                            chun.ResetDisplayColor();
+
+                        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+
+                        break;
+                    case GeometryType.LineStrip:
+                        chun.UpdateLineStrip();
+
+                        GL.LineWidth(5.0f);
+
+                        chun.Render(_uniformMVP, _uniformColor, ViewMatrix, ProjMatrix);
+
+                        GL.LineWidth(1.0f);
+
+                        break;
+                    case GeometryType.None:
+                        //Do nothing
+                        break;
                 }
             }
 
@@ -1229,9 +1263,15 @@ namespace DZxEditor
                         break;
                     case FieldType.Vector3:
                         prop.Data = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+
+                        if (prop.Name == "Position")
+                        {
+                            Position = (Vector3)prop.Data;
+                        }
                         break;
                     case FieldType.String:
-                        prop.Data = reader.ReadString((uint)prop.Length).Trim('\0');
+                        string test = reader.ReadString((uint)prop.Length).Trim('\0');
+                        prop.Data = test;
                         DisplayName = (string)prop.Data;
                         break;
                     case FieldType.ListByte:
@@ -1272,6 +1312,11 @@ namespace DZxEditor
 
                         prop.Data = shortList;
                         break;
+                    case FieldType.ListRPPN:
+                        List<Chunk> rppnList = new List<Chunk>();
+
+                        prop.Data = rppnList;
+                        break;
                     case FieldType.Color:
                         Color color = Color.FromArgb((int)reader.ReadByte(), (int)reader.ReadByte(), (int)reader.ReadByte());
 
@@ -1291,14 +1336,14 @@ namespace DZxEditor
                 }
             }
 
-            template.ReadSpecialProcess();
-
             foreach (ElementProperty prop in template.Properties)
             {
                 ElementProperty actualProp = prop.Copy();
 
                 Fields.Add(actualProp);
             }
+
+            //template.ReadSpecialProcess(Fields);
 
             switch (Geometry)
             {
@@ -1307,6 +1352,9 @@ namespace DZxEditor
                     break;
                 case GeometryType.Sphere:
                     GenerateSphere(250);
+                    break;
+                case GeometryType.LineStrip:
+                    GenerateLineStrip();
                     break;
                 case GeometryType.None:
                     Vertexes = new Vector3[1];
@@ -1478,32 +1526,64 @@ namespace DZxEditor
             }
         }
 
-        public void Render(GLControl Viewport, int _uniformMVP, int _uniformColor, Matrix4 viewMatrix, Matrix4 projMatrix)
+        public void Render(int _uniformMVP, int _uniformColor, Matrix4 viewMatrix, Matrix4 projMatrix)
         {
-            if (Geometry == GeometryType.None)
-                return;
+            Matrix4 modelMatrix;
 
-            //Build a Model View Projection Matrix. This is where you would add camera movement (modifiying the View matrix), Perspective rendering (perspective matrix) and model position/scale/rotation (Model)
-            Matrix4 modelMatrix = Matrix4.CreateTranslation((Vector3)Fields.Find(x => x.Name == "Position").Data) * Matrix4.Rotate(Quaternion.Identity)* Matrix4.Scale(1);
+            Matrix4 finalMatrix;
 
-            //Bind the buffers that have the data you want to use
-            GL.BindBuffer(BufferTarget.ArrayBuffer, _glVbo);
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _glEbo);
+            switch (Geometry)
+            {
+                case GeometryType.Cube:
+                case GeometryType.Sphere:
+                    //Build a Model View Projection Matrix. This is where you would add camera movement (modifiying the View matrix), Perspective rendering (perspective matrix) and model position/scale/rotation (Model)
+                    modelMatrix = Matrix4.CreateTranslation(Position) * Matrix4.Rotate(Quaternion.Identity) * Matrix4.Scale(1);
 
-            //Then, you have to tell the GPU what the contents of the Array buffer look like. Ie: Is each entry just a position, or does it have a position, color, normal, etc.
-            GL.EnableVertexAttribArray((int)ShaderAttributeIds.Position);
-            GL.VertexAttribPointer((int)ShaderAttributeIds.Position, 3, VertexAttribPointerType.Float, false, Vector3.SizeInBytes, 0);
+                    //Bind the buffers that have the data you want to use
+                    GL.BindBuffer(BufferTarget.ArrayBuffer, _glVbo);
+                    GL.BindBuffer(BufferTarget.ElementArrayBuffer, _glEbo);
 
-            //Upload the WVP to the GPU
-            Matrix4 finalMatrix = modelMatrix * viewMatrix * projMatrix;
-            GL.Uniform4(_uniformColor, DisplayColor);
-            GL.UniformMatrix4(_uniformMVP, false, ref finalMatrix);
+                    //Then, you have to tell the GPU what the contents of the Array buffer look like. Ie: Is each entry just a position, or does it have a position, color, normal, etc.
+                    GL.EnableVertexAttribArray((int)ShaderAttributeIds.Position);
+                    GL.VertexAttribPointer((int)ShaderAttributeIds.Position, 3, VertexAttribPointerType.Float, false, Vector3.SizeInBytes, 0);
 
-            //Now we tell the GPU to actually draw the data we have
-            GL.DrawElements(BeginMode.Triangles, Meshes.Count(), DrawElementsType.UnsignedInt, 0);
+                    //Upload the WVP to the GPU
+                    finalMatrix = modelMatrix * viewMatrix * projMatrix;
+                    GL.Uniform4(_uniformColor, DisplayColor);
+                    GL.UniformMatrix4(_uniformMVP, false, ref finalMatrix);
 
-            //This is cleanup to undo the changes to the OpenGL state we did to draw this model.
-            GL.DisableVertexAttribArray((int)ShaderAttributeIds.Position);
+                    //Now we tell the GPU to actually draw the data we have
+                    GL.DrawElements(BeginMode.Triangles, Meshes.Count(), DrawElementsType.UnsignedInt, 0);
+
+                    //This is cleanup to undo the changes to the OpenGL state we did to draw this model.
+                    GL.DisableVertexAttribArray((int)ShaderAttributeIds.Position);
+                    break;
+                case GeometryType.LineStrip:
+                    //Build a Model View Projection Matrix. This is where you would add camera movement (modifiying the View matrix), Perspective rendering (perspective matrix) and model position/scale/rotation (Model)
+                    modelMatrix = Matrix4.Identity;
+
+                    //Bind the buffers that have the data you want to use
+                    GL.BindBuffer(BufferTarget.ArrayBuffer, _glVbo);
+                    GL.BindBuffer(BufferTarget.ElementArrayBuffer, _glEbo);
+
+                    //Then, you have to tell the GPU what the contents of the Array buffer look like. Ie: Is each entry just a position, or does it have a position, color, normal, etc.
+                    GL.EnableVertexAttribArray((int)ShaderAttributeIds.Position);
+                    GL.VertexAttribPointer((int)ShaderAttributeIds.Position, 3, VertexAttribPointerType.Float, false, Vector3.SizeInBytes, 0);
+
+                    //Upload the WVP to the GPU
+                    finalMatrix = modelMatrix * viewMatrix * projMatrix;
+                    GL.Uniform4(_uniformColor, DisplayColor);
+                    GL.UniformMatrix4(_uniformMVP, false, ref finalMatrix);
+
+                    //Now we tell the GPU to actually draw the data we have
+                    GL.DrawElements(BeginMode.LineStrip, Meshes.Count(), DrawElementsType.UnsignedInt, 0);
+
+                    //This is cleanup to undo the changes to the OpenGL state we did to draw this model.
+                    GL.DisableVertexAttribArray((int)ShaderAttributeIds.Position);
+                    break;
+                case GeometryType.None:
+                    break;
+            }
         }
 
         void GenerateCube()
@@ -1620,6 +1700,39 @@ namespace DZxEditor
             GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(Meshes.Length * 4), Meshes, BufferUsageHint.StaticDraw);
         }
 
+        void GenerateLineStrip()
+        {
+            GL.GenBuffers(1, out _glVbo);
+
+            GL.GenBuffers(1, out _glEbo);
+        }
+
+        public void UpdateLineStrip()
+        {
+            List<Chunk> rppnList = (List<Chunk>)Fields.Find(x => x.Name == "Waypoint List").Data;
+
+            Vertexes = new Vector3[rppnList.Count];
+
+            Meshes = new int[rppnList.Count];
+
+            for (int i = 0; i < rppnList.Count; i++)
+            {
+                Vertexes[i] = rppnList[i].Position;
+
+                Meshes[i] = i;
+            }
+
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _glVbo);
+
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(Vertexes.Length * Vector3.SizeInBytes), Vertexes,
+                BufferUsageHint.StaticDraw);
+
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _glEbo);
+
+            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(Meshes.Length * 4), Meshes,
+                BufferUsageHint.StaticDraw);
+        }
+
         public void ResetDisplayColor()
         {
             DisplayColor = ActualColor;
@@ -1629,22 +1742,29 @@ namespace DZxEditor
         {
             bool isSelected = false;
 
-            if (Geometry != GeometryType.None)
+            switch (Geometry)
             {
-                Vector3 position = (Vector3)Fields.Find(x => x.Name == "Position").Data;
+                case GeometryType.Sphere:
+                case GeometryType.Cube:
+                    Vector3 position = (Vector3)Fields.Find(x => x.Name == "Position").Data;
 
-                Position = position;
+                    Position = position;
 
-                float b = Vector3.Dot(ray, (eye - position));
+                    float b = Vector3.Dot(ray, (eye - position));
 
-                float c = Vector3.Dot((eye - position), (eye - position));
+                    float c = Vector3.Dot((eye - position), (eye - position));
 
-                c = c - 2000;
+                    c = c - 2000;
 
-                float a = (b * b) - c;
+                    float a = (b * b) - c;
 
-                if (a >= 0)
-                    isSelected = true;
+                    if (a >= 0)
+                        isSelected = true;
+
+                    break;
+                case GeometryType.LineStrip:
+                case GeometryType.None:
+                    break;
             }
 
             return isSelected;
@@ -1663,24 +1783,69 @@ namespace DZxEditor
 
         public List<BitFieldObject> BitField = new List<BitFieldObject>();
 
-        public void ReadSpecialProcess()
+        public List<Chunk> ChunkListReference;
+
+        public void ReadSpecialProcess(List<ElementProperty> fields, List<Chunk> mainListReference)
         {
-            if (BitField.Count > 0)
+            ChunkListReference = mainListReference;
+
+            List<ElementProperty> tempFieldStorage = new List<ElementProperty>();
+
+            foreach (ElementProperty field in fields)
             {
-                int fieldValue = (int)Properties.Find(x => x.Name == "Bit Field").Data;
-
-                for (int i = 0; i < BitField.Count; i++)
+                switch (field.Name)
                 {
-                    ElementProperty prop = new ElementProperty();
+                    case "Bit Field":
+                        if (BitField.Count > 0)
+                        {
+                            int fieldValue = (int)field.Data;
 
-                    int propValue = (fieldValue & BitField[i].Mask) >> BitField[i].BitShift;
+                            for (int i = 0; i < BitField.Count; i++)
+                            {
+                                ElementProperty prop = new ElementProperty();
 
-                    prop.MakeProperty(BitField[i].Name, FieldType.Integer, (int)propValue);
+                                int propValue = (fieldValue & BitField[i].Mask) >> BitField[i].BitShift;
 
-                    Properties.Insert(Properties.IndexOf(Properties.Find(x => x.Name == "Bit Field")), prop);
+                                prop.MakeProperty(BitField[i].Name, FieldType.Integer, (int)propValue);
+
+                                tempFieldStorage.Add(prop);
+                            }
+                        }
+                        break;
+                    case "Waypoint List":
+                        int firstPointOffset = Convert.ToInt32(fields.Find(x => x.Name == "First Waypoint Offset").Data);
+
+                        int firstWaypointIndex = firstPointOffset / 0x10;
+
+                        int numPoints = Convert.ToInt32(fields.Find(x => x.Name == "Number of Waypoints").Data);
+
+                        List<Chunk> chunkRPPNList = (List<Chunk>)field.Data;
+
+                        List<IGrouping<string, Chunk>> query = ChunkListReference.GroupBy(x => x.ChunkType, x => x).ToList();
+
+                        List<Chunk> rPPN = query.Find(x => x.Key == "RPPN").ToList();
+
+                        for (int i = 0; i < numPoints; i++)
+                        {
+                            chunkRPPNList.Add(rPPN[firstWaypointIndex + i]);
+                        }
+
+                        break;
                 }
+            }
 
-                Properties.Remove(Properties.Find(y => y.Name == "Bit Field"));
+            if (tempFieldStorage.Count > 0)
+            {
+                fields.InsertRange(fields.IndexOf(fields.Find(x => x.Name == "Bit Field")), tempFieldStorage);
+
+                fields.RemoveAt(fields.IndexOf(fields.Find(x => x.Name == "Bit Field")));
+            }
+
+            if (ChunkID == "RPAT" || ChunkID == "PATH")
+            {
+                fields.RemoveAt(fields.IndexOf(fields.Find(x => x.Name == "Number of Waypoints")));
+
+                fields.RemoveAt(fields.IndexOf(fields.Find(x => x.Name == "First Waypoint Offset")));
             }
         }
     }
@@ -2041,6 +2206,7 @@ namespace DZxEditor
                         break;
                     case FieldType.Vector3:
                         SavePosition(prop);
+                        chunk.Position = (Vector3)prop.Data;
                         break;
                     case FieldType.String:
                         TextBox box = (TextBox)control[0];

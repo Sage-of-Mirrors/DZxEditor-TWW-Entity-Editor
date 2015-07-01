@@ -15,5 +15,15 @@
 		{ "Name" : "Item ID", "Type" : "Byte" },
 		{ "Name" : "Flag ID", "Type" : "Byte" },
 		{ "Name" : "Padding", "Type" : "Short" }
+	],
+	
+	"BitField" :
+	[
+		{ "Name" : "Padding", "Mask" : "-16777216", "BitShift" : "24" },
+		{ "Name" : "Chest Type", "Mask" : "15728640", "BitShift" : "20" },
+		{ "Name" : "Appear Flag", "Mask" : "1044480", "BitShift" : "12" },
+		{ "Name" : "Unknown1", "Mask" : "3840", "BitShift" : "8" },
+		{ "Name" : "Unknown2", "Mask" : "240", "BitShift" : "4" },
+		{ "Name" : "Appear Type", "Mask" : "15", "BitShift" : "0" }
 	]
 }

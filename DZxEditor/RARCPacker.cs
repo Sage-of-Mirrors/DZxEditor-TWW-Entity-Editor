@@ -7,126 +7,13 @@ using GameFormatReader.Common;
 
 namespace DZxEditor
 {
-    class ArcHeader
-    {
-        public string Magic;
-        public int FileSize;
-        public int Unknown1;
-        public int DataOffset;
-
-        public int Unknown2;
-        public int Unknown3;
-        public int Unknown4;
-        public int Unknown5;
-
-        public int NodeCount;
-
-        public int Unknown6;
-        public int Unknown7;
-
-        public int FileEntriesOffset;
-
-        public int Unknown8;
-
-        public int StringTableOffset;
-
-        public short FileEntryCount;
-        public byte UnknownBool1;
-        public byte Padding;
-        public int Unknown10;
-
-        public void Write(EndianBinaryWriter writer)
-        {
-            writer.WriteFixedString(Magic, 4);
-            writer.Write(FileSize);
-            writer.Write(Unknown1);
-            writer.Write(DataOffset);
-            writer.Write(Unknown2);
-            writer.Write(Unknown3);
-            writer.Write(Unknown4);
-            writer.Write(Unknown5);
-            writer.Write(NodeCount);
-            writer.Write(Unknown6);
-            writer.Write(Unknown7);
-            writer.Write(FileEntriesOffset);
-            writer.Write(Unknown8);
-            writer.Write(StringTableOffset);
-            writer.Write(FileEntryCount);
-            writer.Write(UnknownBool1);
-            writer.Write(Padding);
-            writer.Write(Unknown10);
-        }
-    }
-
-    class Node
-    {
-        public string Type;
-        public int NameOffset;
-
-        public short NameHash;
-
-        public short FileEntryCount;
-        public int FirstFileEntryIndex;
-
-        public void Write(EndianBinaryWriter writer)
-        {
-            writer.WriteFixedString(Type, 4);
-            writer.Write(NameOffset);
-            writer.Write(NameHash);
-            writer.Write(FileEntryCount);
-            writer.Write(FirstFileEntryIndex);
-        }
-    }
-
-    class FileEntry
-    {
-        public short FileId;
-        public short NameHash;
-        public byte Type;
-        public byte Padding;
-        public short NameOffset;
-        public int DataOffset;
-        public int DataSize;
-        public int Zero;
-
-        public void Write(EndianBinaryWriter writer)
-        {
-            writer.Write(FileId);
-            writer.Write(NameHash);
-            writer.Write(Type);
-            writer.Write(Padding);
-            writer.Write(NameOffset);
-            writer.Write(DataOffset);
-            writer.Write(DataSize);
-            writer.Write(Zero);
-        }
-    }
-
-    class VirtualFolder
-    {
-        public string Name;
-
-        public string NodeName;
-
-        public List<VirtualFolder> Subdirs = new List<VirtualFolder>();
-
-        public List<FileData> Files = new List<FileData>();
-    }
-
-    class FileData
-    {
-        public string Name;
-
-        public byte[] Data;
-    }
-
     class RARCPacker
     {
-        ArcHeader Header;
+        RARCHeader Header;
 
-        List<Node> Nodes;
+        List<RARCNode> Nodes;
 
-        List<FileEntry> Entries;
+        List<RARCFileEntry> Entries;
 
         List<Char> StringTable;
 
@@ -136,7 +23,7 @@ namespace DZxEditor
 
         public void Pack(VirtualFolder root, EndianBinaryWriter writer)
         {
-            Header = new ArcHeader();
+            Header = new RARCHeader();
 
             Header.Magic = "RARC";
 
@@ -144,9 +31,9 @@ namespace DZxEditor
 
             Header.Unknown6 = 0x20;
 
-            Nodes = new List<Node>();
+            Nodes = new List<RARCNode>();
 
-            Entries = new List<FileEntry>();
+            Entries = new List<RARCFileEntry>();
 
             StringTable = new List<char>();
 
@@ -162,7 +49,7 @@ namespace DZxEditor
 
             StringTable.Add('\0');
 
-            Node rootNode = new Node();
+            RARCNode rootNode = new RARCNode();
 
             rootNode.Type = "ROOT";
 
@@ -241,7 +128,7 @@ namespace DZxEditor
 
             #region Add first two period entries. Not using the method I created because of course these two have a slightly different format....
 
-            FileEntry singlePeriod = new FileEntry();
+            RARCFileEntry singlePeriod = new RARCFileEntry();
 
             singlePeriod.FileId = -1;
 
@@ -261,7 +148,7 @@ namespace DZxEditor
 
             Entries.Add(singlePeriod);
 
-            FileEntry doublePeriod = new FileEntry();
+            RARCFileEntry doublePeriod = new RARCFileEntry();
 
             doublePeriod.FileId = -1;
 
@@ -354,7 +241,7 @@ namespace DZxEditor
 
         void AddPeriodEntries(int nodeIndex)
         {
-            FileEntry singlePeriod = new FileEntry();
+            RARCFileEntry singlePeriod = new RARCFileEntry();
 
             singlePeriod.FileId = -1;
 
@@ -374,7 +261,7 @@ namespace DZxEditor
 
             Entries.Add(singlePeriod);
 
-            FileEntry doublePeriod = new FileEntry();
+            RARCFileEntry doublePeriod = new RARCFileEntry();
 
             doublePeriod.FileId = -1;
 
@@ -395,9 +282,9 @@ namespace DZxEditor
             Entries.Add(doublePeriod);
         }
 
-        FileEntry AddFileFileEntry(FileData file)
+        RARCFileEntry AddFileFileEntry(FileData file)
         {
-            FileEntry entry = new FileEntry();
+            RARCFileEntry entry = new RARCFileEntry();
 
             entry.FileId = (short)Entries.Count;
 
@@ -427,9 +314,9 @@ namespace DZxEditor
             return entry;
         }
 
-        void RecursiveDir(VirtualFolder folder, Node rootNode)
+        void RecursiveDir(VirtualFolder folder, RARCNode rootNode)
         {
-            Node subdirNode = new Node();
+            RARCNode subdirNode = new RARCNode();
 
             subdirNode.Type = folder.NodeName;
 
@@ -452,7 +339,7 @@ namespace DZxEditor
 
             Nodes.Add(subdirNode);
 
-            FileEntry subdirEntry = new FileEntry();
+            RARCFileEntry subdirEntry = new RARCFileEntry();
 
             subdirEntry.FileId = -1;
 
@@ -499,14 +386,14 @@ namespace DZxEditor
 
             Pad32(writer);
 
-            foreach (Node node in Nodes)
+            foreach (RARCNode node in Nodes)
             {
                 node.Write(writer);
             }
 
             Pad32(writer);
 
-            foreach (FileEntry entry in Entries)
+            foreach (RARCFileEntry entry in Entries)
             {
                 entry.Write(writer);
             }

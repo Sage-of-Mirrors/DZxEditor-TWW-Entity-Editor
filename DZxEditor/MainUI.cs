@@ -118,13 +118,11 @@ namespace DZxEditor
             Work.PasteChunkElement();
         }
 
-        private void ElementView_BeforeSelect(object sender, TreeViewCancelEventArgs e)
-        {
-        }
-
         private void ElementView_AfterSelect(object sender, TreeViewEventArgs e)
         {
             ElementView.Focus();
+
+            Work.ChangeSelectionFromTreeNode(e.Node);
         }
 
         private void Viewport_Click(object sender, EventArgs e)
