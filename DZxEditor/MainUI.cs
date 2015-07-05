@@ -24,25 +24,36 @@ namespace DZxEditor
 
             Work = new Worker(this);
 
-            FileStream stream = new FileStream("C:\\Program Files (x86)\\SZS Tools\\Root Pure\\res\\Stage\\A_mori\\Stage.arc", FileMode.Open);
+            //FileStream stream = new FileStream("C:\\Program Files (x86)\\SZS Tools\\Root Pure\\res\\Stage\\A_mori\\Stage.arc", FileMode.Open);
 
-            EndianBinaryReader reader = new EndianBinaryReader(stream, Endian.Big);
+            //EndianBinaryReader reader = new EndianBinaryReader(stream, Endian.Big);
 
-            reader.BaseStream.Position += 4;
+            //reader.BaseStream.Position += 4;
 
-            byte[] test = Work.DecodeYaz0(reader);
+            //byte[] test = Work.DecodeYaz0(reader);
 
-            FileStream outSTream = new FileStream("C:\\Program Files (x86)\\SZS Tools\\amoristagetest.arc", FileMode.Create);
+            //FileStream outSTream = new FileStream("C:\\Program Files (x86)\\SZS Tools\\amoristagetest.arc", FileMode.Create);
 
-            EndianBinaryWriter writer = new EndianBinaryWriter(outSTream, Endian.Big);
+            //EndianBinaryWriter writer = new EndianBinaryWriter(outSTream, Endian.Big);
 
-            writer.Write(test);
+            //writer.Write(test);
         }
 
         private void Viewport_Load(object sender, EventArgs e)
         {
-            if (Viewport.IsHandleCreated)
-                Work.SetUpViewport();
+            using (FileStream stream = new FileStream("Console.txt", FileMode.Create))
+            {
+                StreamWriter writer = new StreamWriter(stream);
+
+                Console.SetOut(writer);
+
+                if (Viewport.IsHandleCreated)
+                    Work.SetUpViewport();
+
+                writer.Flush();
+            }
+
+
             /*
             FileStream stream = new FileStream("C:\\Program Files (x86)\\SZS Tools\\De-Arc-ed Stage\\M_NewD2.wrkDir\\Room2\\dzr\\room.dzr", FileMode.Open);
 
@@ -136,6 +147,8 @@ namespace DZxEditor
 
         private void openarcToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            openFileDialog1.Filter = "Archives | *.arc";
+
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 Work.LoadFromArc(openFileDialog1.FileName);
@@ -185,6 +198,8 @@ namespace DZxEditor
 
         private void opendzrdzsToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            openFileDialog1.Filter = "Room entities (*.dzr)|*.dzr|Stage entities (*.dzs)|*.dzs";
+
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 Work.LoadFromDzx(openFileDialog1.FileName);

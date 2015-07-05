@@ -1,4 +1,4 @@
-﻿#version 330
+﻿#version 150
 
 in vec3 vertexPos;
 out vec4 outColor; //out indicates we're passing it to the Frag shader, their names need to match (between Frag and here)

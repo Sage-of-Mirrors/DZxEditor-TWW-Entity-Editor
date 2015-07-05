@@ -1,4 +1,4 @@
-﻿#version 330
+﻿#version 150
 in vec4 outColor; //Matches the output name of the VS 
 out vec4 outputColor; //Out indicates that's what gets written to the screen
 

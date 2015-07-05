@@ -202,12 +202,18 @@ namespace DZxEditor
             //Generate a Program ID
             _programID = GL.CreateProgram();
 
+            Console.WriteLine(_programID + Environment.NewLine);
+
             Cam = new Camera();
 
             //Create the Vertex and Fragment shader from file using our helper function
             int vertShaderId, fragShaderId;
             LoadShader("vs.glsl", ShaderType.VertexShader, _programID, out vertShaderId);
             LoadShader("fs.glsl", ShaderType.FragmentShader, _programID, out fragShaderId);
+
+            Console.WriteLine(vertShaderId + Environment.NewLine);
+
+            Console.WriteLine(fragShaderId + Environment.NewLine);
 
             //Deincriment the reference count on the shaders so that they don't exist until the context is destroyed.
             //(Housekeeping really)
@@ -225,12 +231,18 @@ namespace DZxEditor
             _uniformMVP = GL.GetUniformLocation(_programID, "modelview");
             _uniformColor = GL.GetUniformLocation(_programID, "col");
 
+            Console.WriteLine(_uniformMVP + Environment.NewLine);
+
+            Console.WriteLine(_uniformColor + Environment.NewLine);
+
             //More error checking
             if (GL.GetError() != ErrorCode.NoError)
                 Console.WriteLine(GL.GetProgramInfoLog(_programID));
 
             //This just hooks winforms to draw our control.
             CreateTimer();
+
+            Console.WriteLine("Timer Created" + Environment.NewLine);
         }
 
         private void CreateTimer()
@@ -988,9 +1000,19 @@ namespace DZxEditor
 
             Chunk newChunk = new Chunk();
 
-            newChunk.MakeEmptyChunkFromTemplate(ChunkTemplates.Find(x => x.ChunkID == chunkType));
+            string searchString = chunkType.Remove(chunkType.Length - 1);
+
+            newChunk.MakeEmptyChunkFromTemplate(ChunkTemplates.Find(x => x.ChunkID.Contains(searchString)));
+
+            newChunk.ChunkType = chunkType;
 
             Chunks.Add(newChunk);
+
+            ControlObject newControl = new ControlObject();
+
+            newControl.Load(newChunk);
+
+            Controls.Add(newControl);
 
             UpdateTreeView();
         }
@@ -1843,9 +1865,24 @@ namespace DZxEditor
 
             if (ChunkID == "RPAT" || ChunkID == "PATH")
             {
-                fields.RemoveAt(fields.IndexOf(fields.Find(x => x.Name == "Number of Waypoints")));
+                int numberPointsIndex = fields.IndexOf(fields.Find(x => x.Name == "Number of Waypoints"));
 
-                fields.RemoveAt(fields.IndexOf(fields.Find(x => x.Name == "First Waypoint Offset")));
+
+                using (FileStream stream = new FileStream("C:\\consoleoutput.txt", FileMode.Create))
+                {
+                    EndianBinaryWriter writer = new EndianBinaryWriter(stream, Endian.Big);
+
+                    writer.Write("Number of Points Index: " + numberPointsIndex + Environment.NewLine);
+                    writer.Write("Collection count: " + fields.Count + Environment.NewLine);
+                }
+
+                if ((numberPointsIndex >= 0) && (numberPointsIndex <= fields.Count - 1))
+                    fields.RemoveAt(numberPointsIndex);
+
+                int firstPointOffsetIndex = fields.IndexOf(fields.Find(x => x.Name == "First Waypoint Offset"));
+
+                if ((firstPointOffsetIndex >= 0) && (firstPointOffsetIndex <= fields.Count - 1))
+                    fields.RemoveAt(firstPointOffsetIndex);
             }
         }
     }
